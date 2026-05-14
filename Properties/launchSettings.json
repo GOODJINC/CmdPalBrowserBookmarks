@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "CmdPalBrowserBookmarks (Package)": {
+      "commandName": "MsixPackage",
+      "doNotLaunchApp": true
+    },
+    "CmdPalBrowserBookmarks (Unpackaged)": {
+      "commandName": "Project",
+      "commandLineArgs": "-RegisterProcessAsComServer"
+    }
+  }
+}

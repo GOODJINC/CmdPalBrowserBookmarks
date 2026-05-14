@@ -1,0 +1,33 @@
+# Build outputs
+bin/
+obj/
+AppPackages/
+TestResults/
+
+# Visual Studio local state
+.vs/
+*.user
+*.rsuser
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Generated installer scripts and packages
+setup-x64.iss
+setup-arm64.iss
+*.msix
+*.msixbundle
+*.appx
+*.appxbundle
+*.appinstaller
+*.nupkg
+
+# Local signing material
+*.pfx
+*.snk
+
+# Logs and OS/editor noise
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
