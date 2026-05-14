@@ -9,9 +9,13 @@ namespace CmdPalBrowserBookmarks;
 
 internal sealed partial class BrowserBookmarksCommandsProvider : CommandProvider
 {
+    private static readonly IFallbackCommandItem[] NoFallbackCommands = [];
+
     private readonly object _gate = new();
     private readonly SettingsManager _settings = new();
     private readonly BookmarkIndex _bookmarkIndex;
+    private readonly BookmarkFallbackCommandItem _bookmarkFallbackCommand;
+    private readonly IFallbackCommandItem[] _fallbackCommands;
     private ICommandItem[] _topLevelCommands = [];
     private IReadOnlyList<BookmarkRecord> _loadedBookmarks = [];
     private bool _hasLoadedBookmarks;
@@ -26,6 +30,8 @@ internal sealed partial class BrowserBookmarksCommandsProvider : CommandProvider
         Settings = _settings.Settings;
 
         _bookmarkIndex = new BookmarkIndex(_settings);
+        _bookmarkFallbackCommand = new BookmarkFallbackCommandItem(_bookmarkIndex);
+        _fallbackCommands = [_bookmarkFallbackCommand];
         _settings.Settings.SettingsChanged += (_, _) =>
         {
             _bookmarkIndex.Invalidate();
@@ -37,18 +43,18 @@ internal sealed partial class BrowserBookmarksCommandsProvider : CommandProvider
 
             RebuildTopLevelCommands([], false);
             RaiseItemsChanged(_topLevelCommands.Length);
-            QueueBookmarkRefresh();
+            QueueBookmarkRefresh(notifyItemsChanged: true);
         };
 
         RebuildTopLevelCommands([], false);
-        QueueBookmarkRefresh();
+        QueueBookmarkRefresh(notifyItemsChanged: false);
     }
 
     public override ICommandItem[] TopLevelCommands()
     {
         if (_hasLoadedBookmarks && _bookmarkIndex.HasChanges())
         {
-            QueueBookmarkRefresh();
+            QueueBookmarkRefresh(notifyItemsChanged: true);
         }
 
         lock (_gate)
@@ -57,7 +63,12 @@ internal sealed partial class BrowserBookmarksCommandsProvider : CommandProvider
         }
     }
 
-    private void QueueBookmarkRefresh()
+    public override IFallbackCommandItem[] FallbackCommands()
+    {
+        return _settings.EnableHomePageSuggestions ? _fallbackCommands : NoFallbackCommands;
+    }
+
+    private void QueueBookmarkRefresh(bool notifyItemsChanged)
     {
         lock (_gate)
         {
@@ -81,7 +92,10 @@ internal sealed partial class BrowserBookmarksCommandsProvider : CommandProvider
                 }
 
                 RebuildTopLevelCommands(bookmarks, true);
-                RaiseItemsChanged(_topLevelCommands.Length);
+                if (notifyItemsChanged)
+                {
+                    RaiseItemsChanged(_topLevelCommands.Length);
+                }
             }
             finally
             {
@@ -115,12 +129,19 @@ internal sealed partial class BrowserBookmarksCommandsProvider : CommandProvider
             }))
             {
                 Title = "Browser Bookmark Settings",
-                Subtitle = "Choose Edge, Chrome, Firefox, profiles, and top-level results",
+                Subtitle = "Choose Edge, Chrome, Firefox, profiles, and home-page suggestions",
                 Icon = Icons.Settings,
             },
             new CommandItem(new RefreshBookmarksCommand(_bookmarkIndex, () =>
             {
-                QueueBookmarkRefresh();
+                var currentBookmarks = _bookmarkIndex.GetCachedBookmarks();
+                lock (_gate)
+                {
+                    _loadedBookmarks = currentBookmarks;
+                    _hasLoadedBookmarks = true;
+                }
+
+                RebuildTopLevelCommands(currentBookmarks, true);
                 RaiseItemsChanged(_topLevelCommands.Length);
             }))
             {
@@ -129,13 +150,6 @@ internal sealed partial class BrowserBookmarksCommandsProvider : CommandProvider
                 Icon = Icons.Refresh,
             },
         ];
-
-        if (hasLoadedBookmarks && _settings.ShowBookmarksAtTopLevel)
-        {
-            commands.AddRange(bookmarks
-                .Take(_settings.MaxTopLevelBookmarks)
-                .Select(BookmarkItemFactory.CreateCommandItem));
-        }
 
         lock (_gate)
         {

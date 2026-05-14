@@ -1,52 +1,88 @@
-# Browser Bookmarks for PowerToys Command Palette
+﻿# Browser Bookmarks for PowerToys Command Palette
 
-PowerToys Command Palette에서 Edge, Chrome, Firefox 북마크를 자동으로 읽어 바로 검색하고 여는 확장입니다.
+PowerToys Command Palette에서 브라우저 북마크를 바로 검색하고 여는 확장입니다.
 
-## 동작 방식
+Edge, Chrome, Firefox에 저장된 북마크를 읽어 오기 때문에 Command Palette에 북마크를 따로 등록할 필요가 없습니다.
 
-- Edge/Chrome: `%LOCALAPPDATA%\Microsoft\Edge\User Data`, `%LOCALAPPDATA%\Google\Chrome\User Data` 아래 각 프로필의 `Bookmarks` JSON을 읽습니다.
-- Firefox: `%APPDATA%\Mozilla\Firefox\profiles.ini`로 프로필을 찾고 `places.sqlite`를 읽습니다.
-- 브라우저 데이터는 읽기 전용으로만 접근합니다.
-- 북마크 파일의 수정 시간이나 설정이 바뀌면 캐시를 새로 만듭니다.
-- 기본값으로 북마크를 Command Palette 홈의 top-level command로 노출하므로, 확장 안으로 들어가지 않고 `네이버`처럼 바로 검색할 수 있습니다.
+## 주요 기능
 
-## 설정
+- Edge, Chrome, Firefox 북마크 자동 로드
+- 브라우저 프로필 선택 지원
+- Command Palette 메인 검색창에서 북마크 추천
+- `??` 같은 별칭으로 확장 내부 검색 가능
+- Enter로 기본 브라우저에서 바로 열기
+- URL 기준 중복 북마크 제거
+- 브라우저에서 추가/수정한 북마크를 캐시 변경 감지로 갱신
+- URL 복사, 제목 복사 컨텍스트 명령 지원
+- 별칭 경로에서 열어도 브라우저가 앞쪽에 표시되도록 지연 실행 처리
 
-Command Palette의 확장 설정에서 다음을 조정할 수 있습니다.
+## 지원 브라우저
 
-- Microsoft Edge 연동
-- Google Chrome 연동
-- Mozilla Firefox 연동
-- 모든 프로필 포함 여부
-- 북마크를 Command Palette 홈 화면에 직접 노출할지 여부
-- 홈 화면에 노출할 최대 북마크 수
-- Portable Chromium 계열 브라우저의 추가 User Data 폴더
+| 브라우저 | 읽는 데이터 |
+| --- | --- |
+| Microsoft Edge | Chromium `Bookmarks` 파일 |
+| Google Chrome | Chromium `Bookmarks` 파일 |
+| Mozilla Firefox | `places.sqlite` |
+
+Portable Chromium 계열 브라우저는 설정에서 User Data 폴더를 추가할 수 있습니다.
+
+## Command Palette 설정
+
+`확장 > Browser Bookmarks`에서 설정할 수 있습니다.
+
+- Microsoft Edge
+- Google Chrome
+- Mozilla Firefox
+- All browser profiles
+- Suggest matching bookmarks on the Command Palette home page
+- Additional Chromium user data folders
+
+메인 검색창에서 바로 북마크를 보려면 `대체 명령 > Search browser bookmarks`를 켜고, `전역 결과에 포함`도 켜세요.
 
 ## 빌드
 
-현재 워크스페이스에는 .NET SDK가 설치되어 있지 않아 여기서 직접 빌드는 확인하지 못했습니다. Windows 개발 환경에서 다음이 필요합니다.
+필요한 도구:
 
-- .NET 9 SDK
+- Visual Studio 2026 또는 Windows SDK 포함 빌드 환경
+- .NET SDK
 - PowerToys Command Palette
-- 배포용 설치 파일을 만들려면 Inno Setup 6
 
 ```powershell
 cd D:\Projects\CmdPalBrowserBookmarks
 dotnet restore .\CmdPalBrowserBookmarks.csproj
-dotnet publish .\CmdPalBrowserBookmarks.csproj -c Release -r win-x64 --self-contained true
+dotnet publish .\CmdPalBrowserBookmarks.csproj -c Release -r win-x64 --self-contained true --output .\bin\x64\Release\net9.0-windows10.0.26100.0\win-x64
 ```
 
-설치 파일까지 만들려면:
+## 개발 등록
+
+개발 중에는 MSIX AppExtension 방식으로 등록합니다.
 
 ```powershell
-.\build-exe.ps1 -Version "0.1.0.0" -Platforms @("x64")
+Add-AppxPackage -Register .\bin\x64\Release\net9.0-windows10.0.26100.0\win-x64\AppxManifest.xml -DisableDevelopmentMode
 ```
 
-개발 중에는 Visual Studio에서 실행 인자를 `-RegisterProcessAsComServer`로 두고 실행한 뒤 Command Palette에서 `Reload Command Palette extensions`를 실행하세요.
+등록 후 Command Palette에서 `reload`를 실행하거나 Command Palette를 다시 시작합니다.
 
-## 참고한 공식 문서
+## 테스트
 
-- Command Palette 확장 개요: https://learn.microsoft.com/windows/powertoys/command-palette/extensibility-overview
-- C# 확장 만들기: https://learn.microsoft.com/windows/powertoys/command-palette/creating-an-extension
-- 확장 설정: https://learn.microsoft.com/windows/powertoys/command-palette/adding-extension-settings
-- WinGet/설치 배포: https://learn.microsoft.com/windows/powertoys/command-palette/publish-extension-winget
+1. Command Palette 열기
+2. `reload` 실행
+3. `네이버` 같은 북마크 이름 검색
+4. 결과가 1개만 표시되는지 확인
+5. Enter로 기본 브라우저에서 열리는지 확인
+6. 별칭을 설정했다면 `??`로 들어가서 같은 검색/열기 테스트
+
+## 프로젝트 구조
+
+| 경로 | 역할 |
+| --- | --- |
+| `Bookmarks/` | 브라우저 북마크 탐색, 읽기, 캐시, 검색 점수 |
+| `Commands/` | 북마크 열기, fallback 검색, 새로고침 명령 |
+| `Pages/` | 북마크 목록 페이지와 설정 페이지 |
+| `Settings/` | Command Palette 확장 설정 |
+| `Package.appxmanifest` | Command Palette AppExtension 등록 정보 |
+
+## 참고
+
+현재 권장 등록 방식은 MSIX AppExtension입니다. Inno Setup 방식은 일반 설치 파일 제작에는 사용할 수 있지만, Command Palette 확장 검색/등록에는 MSIX AppExtension 방식이 더 안정적입니다.
+

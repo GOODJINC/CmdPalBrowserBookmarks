@@ -32,5 +32,5 @@ internal sealed record BookmarkRecord(
         ProfileName,
         FolderPath);
 
-    public string StableKey => $"{Source}|{ProfileName}|{Title}|{Url}";
+    public string StableKey => BookmarkUrl.NormalizeForComparison(Url);
 }

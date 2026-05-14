@@ -21,13 +21,9 @@ internal static class BookmarkItemFactory
         return item;
     }
 
-    private static T ApplyCommonProperties<T>(T item, BookmarkRecord bookmark)
-        where T : CommandItem
+    internal static IContextItem[] CreateContextCommands(BookmarkRecord bookmark)
     {
-        item.Title = bookmark.Title;
-        item.Subtitle = BuildSubtitle(bookmark);
-        item.Icon = Icons.Bookmarks;
-        item.MoreCommands =
+        return
         [
             new CommandContextItem(new CopyTextCommand(bookmark.Url))
             {
@@ -42,11 +38,20 @@ internal static class BookmarkItemFactory
                 Icon = Icons.Copy,
             },
         ];
+    }
+
+    private static T ApplyCommonProperties<T>(T item, BookmarkRecord bookmark)
+        where T : CommandItem
+    {
+        item.Title = bookmark.Title;
+        item.Subtitle = BuildSubtitle(bookmark);
+        item.Icon = Icons.Bookmarks;
+        item.MoreCommands = CreateContextCommands(bookmark);
 
         return item;
     }
 
-    private static string BuildSubtitle(BookmarkRecord bookmark)
+    internal static string BuildSubtitle(BookmarkRecord bookmark)
     {
         var location = string.IsNullOrWhiteSpace(bookmark.FolderPath)
             ? bookmark.ProfileName

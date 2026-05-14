@@ -42,6 +42,14 @@ internal sealed class BookmarkIndex
         }
     }
 
+    public IReadOnlyList<BookmarkRecord> GetCachedBookmarks()
+    {
+        lock (_gate)
+        {
+            return _bookmarks ?? [];
+        }
+    }
+
     public bool HasChanges()
     {
         lock (_gate)
@@ -115,8 +123,6 @@ internal sealed class BookmarkIndex
             builder.AppendLine(settings.EnableChrome.ToString());
             builder.AppendLine(settings.EnableFirefox.ToString());
             builder.AppendLine(settings.IncludeAllProfiles.ToString());
-            builder.AppendLine(settings.ShowBookmarksAtTopLevel.ToString());
-            builder.AppendLine(settings.MaxTopLevelBookmarks.ToString());
             builder.AppendLine(settings.CustomChromiumUserDataFolders);
 
             foreach (var path in catalog.WatchedFiles.OrderBy(path => path, StringComparer.OrdinalIgnoreCase))
