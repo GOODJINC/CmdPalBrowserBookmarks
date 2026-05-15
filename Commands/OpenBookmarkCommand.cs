@@ -9,11 +9,13 @@ namespace CmdPalBrowserBookmarks.Commands;
 internal sealed partial class OpenBookmarkCommand : InvokableCommand
 {
     private readonly BookmarkRecord _bookmark;
+    private readonly UrlOpenMode _openMode;
 
-    public OpenBookmarkCommand(BookmarkRecord bookmark)
+    public OpenBookmarkCommand(BookmarkRecord bookmark, UrlOpenMode openMode = UrlOpenMode.Default)
     {
         _bookmark = bookmark;
-        Name = "Open";
+        _openMode = openMode;
+        Name = openMode == UrlOpenMode.NewWindow ? "Open in new window" : "Open";
         Icon = Icons.Open;
     }
 
@@ -21,7 +23,7 @@ internal sealed partial class OpenBookmarkCommand : InvokableCommand
     {
         try
         {
-            OpenAfterPaletteDismisses();
+            OpenAfterPaletteDismisses(_openMode);
             return CommandResult.Dismiss();
         }
         catch (Exception ex)
@@ -30,16 +32,20 @@ internal sealed partial class OpenBookmarkCommand : InvokableCommand
         }
     }
 
-    private void OpenAfterPaletteDismisses()
+    private void OpenAfterPaletteDismisses(UrlOpenMode openMode)
     {
         var processPath = Environment.ProcessPath;
         if (string.IsNullOrWhiteSpace(processPath))
         {
-            OpenDirectly();
+            UrlLauncher.Open(_bookmark.Url, openMode);
             return;
         }
 
         var encodedUrl = Convert.ToBase64String(Encoding.UTF8.GetBytes(_bookmark.Url));
+        var openArgument = openMode == UrlOpenMode.NewWindow
+            ? Program.OpenUrlInNewWindowAfterDelayArgument
+            : Program.OpenUrlAfterDelayArgument;
+
         var startInfo = new ProcessStartInfo
         {
             FileName = processPath,
@@ -48,18 +54,8 @@ internal sealed partial class OpenBookmarkCommand : InvokableCommand
             WindowStyle = ProcessWindowStyle.Hidden,
         };
 
-        startInfo.ArgumentList.Add(Program.OpenUrlAfterDelayArgument);
+        startInfo.ArgumentList.Add(openArgument);
         startInfo.ArgumentList.Add(encodedUrl);
         Process.Start(startInfo);
-    }
-
-    private void OpenDirectly()
-    {
-        Process.Start(new ProcessStartInfo
-        {
-            FileName = _bookmark.Url,
-            UseShellExecute = true,
-            WindowStyle = ProcessWindowStyle.Normal,
-        });
     }
 }

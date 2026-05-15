@@ -78,6 +78,16 @@ Add-AppxPackage -Register .\bin\x64\Release\net9.0-windows10.0.26100.0\win-x64\A
 5. Enter로 기본 브라우저에서 열리는지 확인
 6. 별칭을 설정했다면 `??`로 들어가서 같은 검색/열기 테스트
 
+## 북마크 단축키
+
+| 단축키 | 동작 |
+| --- | --- |
+| `Enter` | 기본 브라우저에서 열기 |
+| `Shift` + `Enter` | 새 창에서 열기 |
+| `Ctrl` + `C` | URL 복사 |
+| `Ctrl` + `Shift` + `C` | 제목 복사 |
+| `Ctrl` + `Alt` + `C` | Markdown 링크 복사 |
+
 ## 프로젝트 구조
 
 | 경로 | 역할 |

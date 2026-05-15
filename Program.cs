@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 using System.Threading;
+using CmdPalBrowserBookmarks.Commands;
 using Microsoft.CommandPalette.Extensions;
 using Shmuelie.WinRTServer;
 using Shmuelie.WinRTServer.CsWinRT;
@@ -10,6 +11,7 @@ namespace CmdPalBrowserBookmarks;
 public static class Program
 {
     internal const string OpenUrlAfterDelayArgument = "--open-url-after-delay";
+    internal const string OpenUrlInNewWindowAfterDelayArgument = "--open-url-in-new-window-after-delay";
 
     [MTAThread]
     public static void Main(string[] args)
@@ -38,7 +40,13 @@ public static class Program
 
     private static bool TryOpenUrlAfterDelay(string[] args)
     {
-        if (args.Length < 2 || !string.Equals(args[0], OpenUrlAfterDelayArgument, StringComparison.OrdinalIgnoreCase))
+        var openMode = args.Length >= 2 && string.Equals(args[0], OpenUrlAfterDelayArgument, StringComparison.OrdinalIgnoreCase)
+            ? UrlOpenMode.Default
+            : args.Length >= 2 && string.Equals(args[0], OpenUrlInNewWindowAfterDelayArgument, StringComparison.OrdinalIgnoreCase)
+                ? UrlOpenMode.NewWindow
+                : (UrlOpenMode?)null;
+
+        if (openMode is null)
         {
             return false;
         }
@@ -47,12 +55,7 @@ public static class Program
         {
             var url = Encoding.UTF8.GetString(Convert.FromBase64String(args[1]));
             Thread.Sleep(200);
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = url,
-                UseShellExecute = true,
-                WindowStyle = ProcessWindowStyle.Normal,
-            });
+            UrlLauncher.Open(url, openMode.Value);
         }
         catch
         {
