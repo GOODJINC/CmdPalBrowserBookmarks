@@ -10,7 +10,7 @@
   <Identity
     Name="CmdPalBrowserBookmarks"
     Publisher="CN=CmdPalBrowserBookmarks"
-    Version="0.1.0.0" />
+    Version="0.2.0.0" />
 
   <Properties>
     <DisplayName>Browser Bookmarks for Command Palette</DisplayName>
