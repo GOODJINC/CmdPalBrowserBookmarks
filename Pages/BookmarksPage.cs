@@ -32,7 +32,7 @@ internal sealed partial class BookmarksPage : DynamicListPage
         try
         {
             var bookmarks = _bookmarkIndex.GetBookmarks();
-            return BookmarkSearch.FindMatches(bookmarks, query)
+            return BookmarkSearch.FindMatches(bookmarks, query, _bookmarkIndex.SearchOptions)
                 .Take(MaxPageResults)
                 .Select(BookmarkItemFactory.CreateListItem)
                 .ToArray();

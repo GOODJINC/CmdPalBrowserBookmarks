@@ -18,6 +18,8 @@ internal sealed class BookmarkIndex
         _settings = settings;
     }
 
+    public BookmarkSearchOptions SearchOptions => new(_settings.EnableKoreanInitialConsonantSearch);
+
     public IReadOnlyList<BookmarkRecord> GetBookmarks()
     {
         var catalog = BrowserProfileDiscovery.Discover(_settings);

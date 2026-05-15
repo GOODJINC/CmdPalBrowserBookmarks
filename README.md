@@ -12,6 +12,7 @@ Edge, Chrome, Firefox에 저장된 북마크를 읽어 오기 때문에 Command 
 - `??` 같은 별칭으로 확장 내부 검색 가능
 - Enter로 기본 브라우저에서 바로 열기
 - URL 기준 중복 북마크 제거
+- 한 글자 검색 및 한글 초성 검색 지원
 - 브라우저에서 추가/수정한 북마크를 캐시 변경 감지로 갱신
 - URL 복사, 제목 복사 컨텍스트 명령 지원
 - 별칭 경로에서 열어도 브라우저가 앞쪽에 표시되도록 지연 실행 처리
@@ -35,6 +36,7 @@ Portable Chromium 계열 브라우저는 설정에서 User Data 폴더를 추가
 - Mozilla Firefox
 - All browser profiles
 - Suggest matching bookmarks on the Command Palette home page
+- Korean initial consonant search
 - Additional Chromium user data folders
 
 메인 검색창에서 바로 북마크를 보려면 `대체 명령 > Search browser bookmarks`를 켜고, `전역 결과에 포함`도 켜세요.

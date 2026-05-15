@@ -38,6 +38,12 @@ internal sealed class SettingsManager : JsonSettingsManager
         "When enabled, typing on the home page can show the best matching browser bookmark without exposing every bookmark as a separate command.",
         true);
 
+    private readonly ToggleSetting _enableKoreanInitialConsonantSearch = new(
+        Key(nameof(EnableKoreanInitialConsonantSearch)),
+        "Korean initial consonant search",
+        "Allow queries like ㄴㅇㅂ to match Korean bookmark titles like 네이버.",
+        true);
+
     private readonly TextSetting _customChromiumUserDataFolders = new(
         Key(nameof(CustomChromiumUserDataFolders)),
         "Additional Chromium user data folders",
@@ -58,6 +64,8 @@ internal sealed class SettingsManager : JsonSettingsManager
 
     public bool EnableHomePageSuggestions => _enableHomePageSuggestions.Value;
 
+    public bool EnableKoreanInitialConsonantSearch => _enableKoreanInitialConsonantSearch.Value;
+
     public string CustomChromiumUserDataFolders => _customChromiumUserDataFolders.Value ?? string.Empty;
 
     public SettingsManager()
@@ -74,6 +82,7 @@ internal sealed class SettingsManager : JsonSettingsManager
         Settings.Add(_enableFirefox);
         Settings.Add(_includeAllProfiles);
         Settings.Add(_enableHomePageSuggestions);
+        Settings.Add(_enableKoreanInitialConsonantSearch);
         Settings.Add(_customChromiumUserDataFolders);
 
         LoadSettings();

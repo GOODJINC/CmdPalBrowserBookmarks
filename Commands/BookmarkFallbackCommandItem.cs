@@ -7,7 +7,7 @@ namespace CmdPalBrowserBookmarks.Commands;
 internal sealed partial class BookmarkFallbackCommandItem : FallbackCommandItem
 {
     private const string FallbackId = "CmdPalBrowserBookmarks.SearchBookmarksFallback";
-    private const int MinimumQueryLength = 2;
+    private const int MinimumQueryLength = 1;
 
     private readonly BookmarkIndex _bookmarkIndex;
 
@@ -28,7 +28,10 @@ internal sealed partial class BookmarkFallbackCommandItem : FallbackCommandItem
             return;
         }
 
-        var bookmark = BookmarkSearch.FindBestMatch(GetSearchableBookmarks(), searchText);
+        var bookmark = BookmarkSearch.FindBestMatch(
+            GetSearchableBookmarks(),
+            searchText,
+            _bookmarkIndex.SearchOptions);
         if (bookmark is null)
         {
             SetNoMatchState(searchText);
