@@ -19,9 +19,16 @@ internal sealed partial class RefreshBookmarksCommand : InvokableCommand
 
     public override ICommandResult Invoke()
     {
-        _bookmarkIndex.Invalidate();
-        var count = _bookmarkIndex.GetBookmarks().Count;
-        _onRefreshed();
-        return CommandResult.ShowToast($"Loaded {count:N0} browser bookmarks.");
+        try
+        {
+            _bookmarkIndex.Invalidate();
+            var count = _bookmarkIndex.GetBookmarks().Count;
+            _onRefreshed();
+            return CommandResult.ShowToast($"Loaded {count:N0} browser bookmarks.");
+        }
+        catch (Exception ex)
+        {
+            return CommandResult.ShowToast($"Failed to refresh browser bookmarks: {ex.Message}");
+        }
     }
 }

@@ -29,24 +29,17 @@ internal sealed partial class BookmarksPage : DynamicListPage
     public override IListItem[] GetItems()
     {
         var query = SearchText?.Trim() ?? string.Empty;
-        var bookmarks = _bookmarkIndex.GetBookmarks();
-
-        IEnumerable<BookmarkRecord> results = string.IsNullOrWhiteSpace(query)
-            ? bookmarks
-            : bookmarks
-                .Select(bookmark => new
-                {
-                    Bookmark = bookmark,
-                    Score = BookmarkSearch.Score(bookmark, query),
-                })
-                .Where(result => result.Score > 0)
-                .OrderByDescending(result => result.Score)
-                .ThenBy(result => result.Bookmark.Title, StringComparer.CurrentCultureIgnoreCase)
-                .Select(result => result.Bookmark);
-
-        return results
-            .Take(MaxPageResults)
-            .Select(BookmarkItemFactory.CreateListItem)
-            .ToArray();
+        try
+        {
+            var bookmarks = _bookmarkIndex.GetBookmarks();
+            return BookmarkSearch.FindMatches(bookmarks, query)
+                .Take(MaxPageResults)
+                .Select(BookmarkItemFactory.CreateListItem)
+                .ToArray();
+        }
+        catch
+        {
+            return [];
+        }
     }
 }

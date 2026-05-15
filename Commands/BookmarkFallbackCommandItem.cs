@@ -28,25 +28,13 @@ internal sealed partial class BookmarkFallbackCommandItem : FallbackCommandItem
             return;
         }
 
-        var bookmarks = GetSearchableBookmarks();
-        var match = bookmarks
-            .Select(bookmark => new
-            {
-                Bookmark = bookmark,
-                Score = BookmarkSearch.Score(bookmark, searchText),
-            })
-            .Where(result => result.Score > 0)
-            .OrderByDescending(result => result.Score)
-            .ThenBy(result => result.Bookmark.Title, StringComparer.CurrentCultureIgnoreCase)
-            .FirstOrDefault();
-
-        if (match is null)
+        var bookmark = BookmarkSearch.FindBestMatch(GetSearchableBookmarks(), searchText);
+        if (bookmark is null)
         {
             SetNoMatchState(searchText);
             return;
         }
 
-        var bookmark = match.Bookmark;
         Title = bookmark.Title;
         Subtitle = $"Open bookmark - {BookmarkItemFactory.BuildSubtitle(bookmark)}";
         Icon = Icons.Bookmarks;

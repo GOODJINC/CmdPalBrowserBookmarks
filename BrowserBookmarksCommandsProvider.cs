@@ -97,6 +97,18 @@ internal sealed partial class BrowserBookmarksCommandsProvider : CommandProvider
                     RaiseItemsChanged(_topLevelCommands.Length);
                 }
             }
+            catch
+            {
+                var bookmarks = _bookmarkIndex.GetCachedBookmarks();
+                if (bookmarks.Count > 0)
+                {
+                    RebuildTopLevelCommands(bookmarks, true);
+                    if (notifyItemsChanged)
+                    {
+                        RaiseItemsChanged(_topLevelCommands.Length);
+                    }
+                }
+            }
             finally
             {
                 lock (_gate)
