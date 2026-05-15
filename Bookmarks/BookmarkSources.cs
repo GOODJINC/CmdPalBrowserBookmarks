@@ -15,7 +15,8 @@ internal sealed record FirefoxProfile(
     string BrowserName,
     string ProfilePath,
     string ProfileId,
-    string ProfileName)
+    string ProfileName,
+    bool IsDefault)
 {
     public string PlacesPath => Path.Combine(ProfilePath, "places.sqlite");
 }

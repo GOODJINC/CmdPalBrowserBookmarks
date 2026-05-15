@@ -22,7 +22,8 @@ internal static class BrowserProfileDiscovery
                 BookmarkSourceKind.Edge,
                 "Microsoft Edge",
                 Path.Combine(localAppData, "Microsoft", "Edge", "User Data"),
-                settings.IncludeAllProfiles);
+                settings.EdgeProfileMode,
+                settings.SelectedEdgeProfileId);
         }
 
         if (settings.EnableChrome)
@@ -33,7 +34,8 @@ internal static class BrowserProfileDiscovery
                 BookmarkSourceKind.Chrome,
                 "Google Chrome",
                 Path.Combine(localAppData, "Google", "Chrome", "User Data"),
-                settings.IncludeAllProfiles);
+                settings.ChromeProfileMode,
+                settings.SelectedChromeProfileId);
         }
 
         foreach (var customPath in ParseCustomChromiumPaths(settings.CustomChromiumUserDataFolders))
@@ -44,19 +46,18 @@ internal static class BrowserProfileDiscovery
                 BookmarkSourceKind.Chromium,
                 "Chromium",
                 customPath,
-                settings.IncludeAllProfiles);
+                settings.ChromeProfileMode,
+                settings.SelectedChromeProfileId);
         }
 
         if (settings.EnableFirefox)
         {
-            foreach (var firefoxRoot in GetFirefoxRoots(roamingAppData, localAppData))
-            {
-                AddFirefoxProfiles(
-                    firefoxProfiles,
-                    watchedFiles,
-                    firefoxRoot,
-                    settings.IncludeAllProfiles);
-            }
+            AddFirefoxProfiles(
+                firefoxProfiles,
+                watchedFiles,
+                GetFirefoxRoots(roamingAppData, localAppData),
+                settings.FirefoxProfileMode,
+                settings.SelectedFirefoxProfileId);
         }
 
         return new BookmarkSourceCatalog(
@@ -71,16 +72,39 @@ internal static class BrowserProfileDiscovery
         BookmarkSourceKind source,
         string browserName,
         string userDataPath,
-        bool includeAllProfiles)
+        BrowserProfileMode profileMode,
+        string selectedProfileId)
+    {
+        var discovery = GetChromiumProfiles(source, browserName, userDataPath);
+        if (discovery.LocalStatePath is not null)
+        {
+            watchedFiles.Add(discovery.LocalStatePath);
+        }
+
+        var selectedProfiles = SelectChromiumProfiles(
+            discovery.Profiles,
+            discovery.LastUsedProfileId,
+            profileMode,
+            selectedProfileId);
+
+        foreach (var profile in selectedProfiles)
+        {
+            profiles.Add(profile);
+            watchedFiles.Add(profile.BookmarksPath);
+        }
+    }
+
+    internal static ChromiumProfileDiscoveryResult GetChromiumProfiles(
+        BookmarkSourceKind source,
+        string browserName,
+        string userDataPath)
     {
         if (!Directory.Exists(userDataPath))
         {
-            return;
+            return new ChromiumProfileDiscoveryResult([], null, null);
         }
 
         var localStatePath = Path.Combine(userDataPath, "Local State");
-        watchedFiles.Add(localStatePath);
-
         var profileMetadata = ReadChromiumProfileMetadata(localStatePath);
         List<string> candidates;
         try
@@ -92,26 +116,61 @@ internal static class BrowserProfileDiscovery
         }
         catch
         {
-            return;
+            return new ChromiumProfileDiscoveryResult([], profileMetadata.LastUsedProfileId, localStatePath);
         }
 
-        if (!includeAllProfiles)
+        var profiles = candidates
+            .Select(profilePath =>
+            {
+                var profileId = Path.GetFileName(profilePath);
+                var profileName = profileMetadata.ProfileNames.TryGetValue(profileId, out var friendlyName)
+                    ? friendlyName
+                    : profileId;
+
+                return new ChromiumProfile(source, browserName, userDataPath, profilePath, profileId, profileName);
+            })
+            .ToArray();
+
+        return new ChromiumProfileDiscoveryResult(profiles, profileMetadata.LastUsedProfileId, localStatePath);
+    }
+
+    internal static IReadOnlyList<FirefoxProfile> GetFirefoxProfiles(string roamingAppData, string localAppData)
+    {
+        return GetFirefoxProfiles(GetFirefoxRoots(roamingAppData, localAppData));
+    }
+
+    private static IReadOnlyList<ChromiumProfile> SelectChromiumProfiles(
+        IReadOnlyList<ChromiumProfile> profiles,
+        string? lastUsedProfileId,
+        BrowserProfileMode profileMode,
+        string selectedProfileId)
+    {
+        return profileMode switch
         {
-            var preferredProfile = GetPreferredChromiumProfile(candidates, profileMetadata.LastUsedProfileId);
-            candidates = preferredProfile is null ? [] : [preferredProfile];
-        }
+            BrowserProfileMode.All => profiles,
+            BrowserProfileMode.Selected => SelectSpecificChromiumProfile(profiles, selectedProfileId, lastUsedProfileId),
+            _ => SelectPreferredChromiumProfile(profiles, lastUsedProfileId),
+        };
+    }
 
-        foreach (var profilePath in candidates)
-        {
-            var profileId = Path.GetFileName(profilePath);
-            var profileName = profileMetadata.ProfileNames.TryGetValue(profileId, out var friendlyName)
-                ? friendlyName
-                : profileId;
+    private static IReadOnlyList<ChromiumProfile> SelectSpecificChromiumProfile(
+        IReadOnlyList<ChromiumProfile> profiles,
+        string selectedProfileId,
+        string? lastUsedProfileId)
+    {
+        var profile = profiles.FirstOrDefault(candidate =>
+            ProfileMatches(candidate.ProfileId, candidate.ProfileName, selectedProfileId));
+        return profile is null
+            ? SelectPreferredChromiumProfile(profiles, lastUsedProfileId)
+            : [profile];
+    }
 
-            var profile = new ChromiumProfile(source, browserName, userDataPath, profilePath, profileId, profileName);
-            profiles.Add(profile);
-            watchedFiles.Add(profile.BookmarksPath);
-        }
+    private static IReadOnlyList<ChromiumProfile> SelectPreferredChromiumProfile(
+        IReadOnlyList<ChromiumProfile> profiles,
+        string? lastUsedProfileId)
+    {
+        var profile = GetPreferredChromiumProfile(profiles, lastUsedProfileId);
+        return profile is null ? [] : [profile];
     }
 
     private static ChromiumProfileMetadata ReadChromiumProfileMetadata(string localStatePath)
@@ -162,7 +221,9 @@ internal static class BrowserProfileDiscovery
         return new ChromiumProfileMetadata(names, lastUsedProfileId);
     }
 
-    private static string? GetPreferredChromiumProfile(IReadOnlyList<string> candidates, string? lastUsedProfileId)
+    private static ChromiumProfile? GetPreferredChromiumProfile(
+        IReadOnlyList<ChromiumProfile> candidates,
+        string? lastUsedProfileId)
     {
         if (candidates.Count == 0)
         {
@@ -170,59 +231,122 @@ internal static class BrowserProfileDiscovery
         }
 
         var lastUsedProfile = candidates.FirstOrDefault(path =>
-            string.Equals(Path.GetFileName(path), lastUsedProfileId, StringComparison.OrdinalIgnoreCase));
+            string.Equals(path.ProfileId, lastUsedProfileId, StringComparison.OrdinalIgnoreCase));
         if (lastUsedProfile is not null)
         {
             return lastUsedProfile;
         }
 
         var defaultProfile = candidates.FirstOrDefault(path =>
-            string.Equals(Path.GetFileName(path), "Default", StringComparison.OrdinalIgnoreCase));
+            string.Equals(path.ProfileId, "Default", StringComparison.OrdinalIgnoreCase));
         return defaultProfile ?? candidates.FirstOrDefault();
     }
 
     private static void AddFirefoxProfiles(
         List<FirefoxProfile> profiles,
         List<string> watchedFiles,
-        string firefoxRoot,
-        bool includeAllProfiles)
+        IEnumerable<string> firefoxRoots,
+        BrowserProfileMode profileMode,
+        string selectedProfileId)
     {
-        var profilesIniPath = Path.Combine(firefoxRoot, "profiles.ini");
-        watchedFiles.Add(profilesIniPath);
-
-        if (!File.Exists(profilesIniPath))
+        var discoveredProfiles = new List<FirefoxProfile>();
+        foreach (var firefoxRoot in firefoxRoots.Distinct(StringComparer.OrdinalIgnoreCase))
         {
-            return;
+            var profilesIniPath = Path.Combine(firefoxRoot, "profiles.ini");
+            watchedFiles.Add(profilesIniPath);
+
+            if (!File.Exists(profilesIniPath))
+            {
+                continue;
+            }
+
+            try
+            {
+                discoveredProfiles.AddRange(
+                    ParseFirefoxProfilesIni(profilesIniPath, firefoxRoot)
+                        .Where(profile => File.Exists(profile.PlacesPath)));
+            }
+            catch
+            {
+            }
         }
 
-        List<FirefoxProfile> profileEntries;
-        try
-        {
-            profileEntries = ParseFirefoxProfilesIni(profilesIniPath, firefoxRoot)
-                .Where(profile => File.Exists(profile.PlacesPath))
+        var selectedProfiles = SelectFirefoxProfiles(
+            discoveredProfiles
+                .DistinctBy(profile => profile.ProfilePath, StringComparer.OrdinalIgnoreCase)
                 .OrderBy(profile => profile.ProfileName, StringComparer.CurrentCultureIgnoreCase)
-                .ToList();
-        }
-        catch
-        {
-            return;
-        }
+                .ToArray(),
+            profileMode,
+            selectedProfileId);
 
-        if (!includeAllProfiles)
-        {
-            profileEntries = profileEntries
-                .OrderByDescending(profile => profile.ProfileId.Contains("default", StringComparison.OrdinalIgnoreCase))
-                .Take(1)
-                .ToList();
-        }
-
-        foreach (var profile in profileEntries)
+        foreach (var profile in selectedProfiles)
         {
             profiles.Add(profile);
             watchedFiles.Add(profile.PlacesPath);
             watchedFiles.Add(profile.PlacesPath + "-wal");
             watchedFiles.Add(profile.PlacesPath + "-shm");
         }
+    }
+
+    private static IReadOnlyList<FirefoxProfile> GetFirefoxProfiles(IEnumerable<string> firefoxRoots)
+    {
+        var profiles = new List<FirefoxProfile>();
+        foreach (var firefoxRoot in firefoxRoots.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            var profilesIniPath = Path.Combine(firefoxRoot, "profiles.ini");
+            if (!File.Exists(profilesIniPath))
+            {
+                continue;
+            }
+
+            try
+            {
+                profiles.AddRange(
+                    ParseFirefoxProfilesIni(profilesIniPath, firefoxRoot)
+                        .Where(profile => File.Exists(profile.PlacesPath)));
+            }
+            catch
+            {
+            }
+        }
+
+        return profiles
+            .DistinctBy(profile => profile.ProfilePath, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(profile => profile.ProfileName, StringComparer.CurrentCultureIgnoreCase)
+            .ToArray();
+    }
+
+    private static IReadOnlyList<FirefoxProfile> SelectFirefoxProfiles(
+        IReadOnlyList<FirefoxProfile> profiles,
+        BrowserProfileMode profileMode,
+        string selectedProfileId)
+    {
+        return profileMode switch
+        {
+            BrowserProfileMode.All => profiles,
+            BrowserProfileMode.Selected => SelectSpecificFirefoxProfile(profiles, selectedProfileId),
+            _ => SelectPreferredFirefoxProfile(profiles),
+        };
+    }
+
+    private static IReadOnlyList<FirefoxProfile> SelectSpecificFirefoxProfile(
+        IReadOnlyList<FirefoxProfile> profiles,
+        string selectedProfileId)
+    {
+        var profile = profiles.FirstOrDefault(candidate =>
+            ProfileMatches(candidate.ProfileId, candidate.ProfileName, selectedProfileId));
+        return profile is null
+            ? SelectPreferredFirefoxProfile(profiles)
+            : [profile];
+    }
+
+    private static IReadOnlyList<FirefoxProfile> SelectPreferredFirefoxProfile(IReadOnlyList<FirefoxProfile> profiles)
+    {
+        var profile = profiles.FirstOrDefault(profile => profile.IsDefault) ??
+            profiles.FirstOrDefault(profile => profile.ProfileId.Contains("default", StringComparison.OrdinalIgnoreCase)) ??
+            profiles.FirstOrDefault();
+
+        return profile is null ? [] : [profile];
     }
 
     private static IEnumerable<string> GetFirefoxRoots(string roamingAppData, string localAppData)
@@ -298,7 +422,9 @@ internal static class BrowserProfileDiscovery
                 ? configuredName
                 : id;
 
-            profiles.Add(new FirefoxProfile("Mozilla Firefox", profilePath, id, name));
+            var isDefault = entry.TryGetValue("Default", out var defaultValue) && defaultValue == "1";
+
+            profiles.Add(new FirefoxProfile("Mozilla Firefox", profilePath, id, name, isDefault));
         }
     }
 
@@ -324,7 +450,19 @@ internal static class BrowserProfileDiscovery
         return new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
     }
 
+    private static bool ProfileMatches(string profileId, string profileName, string selectedProfileId)
+    {
+        return !string.IsNullOrWhiteSpace(selectedProfileId) &&
+            (string.Equals(profileId, selectedProfileId, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(profileName, selectedProfileId, StringComparison.OrdinalIgnoreCase));
+    }
+
     private sealed record ChromiumProfileMetadata(
         IReadOnlyDictionary<string, string> ProfileNames,
         string? LastUsedProfileId);
+
+    internal sealed record ChromiumProfileDiscoveryResult(
+        IReadOnlyList<ChromiumProfile> Profiles,
+        string? LastUsedProfileId,
+        string? LocalStatePath);
 }

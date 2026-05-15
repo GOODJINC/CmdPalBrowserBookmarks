@@ -1,3 +1,4 @@
+using CmdPalBrowserBookmarks.Bookmarks;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 
 namespace CmdPalBrowserBookmarks.Settings;
@@ -26,11 +27,47 @@ internal sealed class SettingsManager : JsonSettingsManager
         "Read bookmarks from Firefox places.sqlite profiles.",
         true);
 
-    private readonly ToggleSetting _includeAllProfiles = new(
-        Key(nameof(IncludeAllProfiles)),
-        "All browser profiles",
-        "Read every detected browser profile instead of only the Default profile.",
-        true);
+    private readonly ChoiceSetSetting _edgeProfileMode = new(
+        Key(nameof(EdgeProfileMode)),
+        "Microsoft Edge profile mode",
+        "Choose which Microsoft Edge profile should be searched.",
+        ProfileModeChoices());
+
+    private readonly ChoiceSetSetting _selectedEdgeProfile = new(
+        Key(nameof(SelectedEdgeProfileId)),
+        "Microsoft Edge profile",
+        "Used when Microsoft Edge profile mode is set to Specific profile.",
+        ChromiumProfileChoices(
+            BookmarkSourceKind.Edge,
+            "Microsoft Edge",
+            Path.Combine(LocalAppData, "Microsoft", "Edge", "User Data")));
+
+    private readonly ChoiceSetSetting _chromeProfileMode = new(
+        Key(nameof(ChromeProfileMode)),
+        "Google Chrome profile mode",
+        "Choose which Google Chrome profile should be searched.",
+        ProfileModeChoices());
+
+    private readonly ChoiceSetSetting _selectedChromeProfile = new(
+        Key(nameof(SelectedChromeProfileId)),
+        "Google Chrome profile",
+        "Used when Google Chrome profile mode is set to Specific profile.",
+        ChromiumProfileChoices(
+            BookmarkSourceKind.Chrome,
+            "Google Chrome",
+            Path.Combine(LocalAppData, "Google", "Chrome", "User Data")));
+
+    private readonly ChoiceSetSetting _firefoxProfileMode = new(
+        Key(nameof(FirefoxProfileMode)),
+        "Mozilla Firefox profile mode",
+        "Choose which Mozilla Firefox profile should be searched.",
+        ProfileModeChoices());
+
+    private readonly ChoiceSetSetting _selectedFirefoxProfile = new(
+        Key(nameof(SelectedFirefoxProfileId)),
+        "Mozilla Firefox profile",
+        "Used when Mozilla Firefox profile mode is set to Specific profile.",
+        FirefoxProfileChoices());
 
     private readonly ToggleSetting _enableHomePageSuggestions = new(
         Key(nameof(EnableHomePageSuggestions)),
@@ -54,13 +91,27 @@ internal sealed class SettingsManager : JsonSettingsManager
         Placeholder = @"C:\Portable\Browser\User Data;D:\Profiles\Chromium\User Data",
     };
 
+    private static string LocalAppData => Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+
+    private static string RoamingAppData => Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+
     public bool EnableEdge => _enableEdge.Value;
 
     public bool EnableChrome => _enableChrome.Value;
 
     public bool EnableFirefox => _enableFirefox.Value;
 
-    public bool IncludeAllProfiles => _includeAllProfiles.Value;
+    public BrowserProfileMode EdgeProfileMode => ReadProfileMode(_edgeProfileMode.Value);
+
+    public string SelectedEdgeProfileId => _selectedEdgeProfile.Value ?? string.Empty;
+
+    public BrowserProfileMode ChromeProfileMode => ReadProfileMode(_chromeProfileMode.Value);
+
+    public string SelectedChromeProfileId => _selectedChromeProfile.Value ?? string.Empty;
+
+    public BrowserProfileMode FirefoxProfileMode => ReadProfileMode(_firefoxProfileMode.Value);
+
+    public string SelectedFirefoxProfileId => _selectedFirefoxProfile.Value ?? string.Empty;
 
     public bool EnableHomePageSuggestions => _enableHomePageSuggestions.Value;
 
@@ -80,7 +131,12 @@ internal sealed class SettingsManager : JsonSettingsManager
         Settings.Add(_enableEdge);
         Settings.Add(_enableChrome);
         Settings.Add(_enableFirefox);
-        Settings.Add(_includeAllProfiles);
+        Settings.Add(_edgeProfileMode);
+        Settings.Add(_selectedEdgeProfile);
+        Settings.Add(_chromeProfileMode);
+        Settings.Add(_selectedChromeProfile);
+        Settings.Add(_firefoxProfileMode);
+        Settings.Add(_selectedFirefoxProfile);
         Settings.Add(_enableHomePageSuggestions);
         Settings.Add(_enableKoreanInitialConsonantSearch);
         Settings.Add(_customChromiumUserDataFolders);
@@ -88,5 +144,63 @@ internal sealed class SettingsManager : JsonSettingsManager
         LoadSettings();
 
         Settings.SettingsChanged += (_, _) => SaveSettings();
+    }
+
+    private static List<ChoiceSetSetting.Choice> ProfileModeChoices()
+    {
+        return
+        [
+            new("Recently used/default profile", "recent"),
+            new("Specific profile", "selected"),
+            new("All profiles", "all"),
+        ];
+    }
+
+    private static List<ChoiceSetSetting.Choice> ChromiumProfileChoices(
+        BookmarkSourceKind source,
+        string browserName,
+        string userDataPath)
+    {
+        var choices = new List<ChoiceSetSetting.Choice>
+        {
+            new("Automatic fallback", "auto"),
+        };
+
+        var profiles = BrowserProfileDiscovery.GetChromiumProfiles(source, browserName, userDataPath).Profiles;
+        choices.AddRange(profiles.Select(profile =>
+            new ChoiceSetSetting.Choice(ProfileChoiceLabel(profile.ProfileName, profile.ProfileId), profile.ProfileId)));
+
+        return choices;
+    }
+
+    private static List<ChoiceSetSetting.Choice> FirefoxProfileChoices()
+    {
+        var choices = new List<ChoiceSetSetting.Choice>
+        {
+            new("Automatic fallback", "auto"),
+        };
+
+        var profiles = BrowserProfileDiscovery.GetFirefoxProfiles(RoamingAppData, LocalAppData);
+        choices.AddRange(profiles.Select(profile =>
+            new ChoiceSetSetting.Choice(ProfileChoiceLabel(profile.ProfileName, profile.ProfileId), profile.ProfileId)));
+
+        return choices;
+    }
+
+    private static string ProfileChoiceLabel(string profileName, string profileId)
+    {
+        return string.Equals(profileName, profileId, StringComparison.OrdinalIgnoreCase)
+            ? profileId
+            : $"{profileName} ({profileId})";
+    }
+
+    private static BrowserProfileMode ReadProfileMode(string? value)
+    {
+        return value?.Trim().ToLowerInvariant() switch
+        {
+            "all" => BrowserProfileMode.All,
+            "selected" => BrowserProfileMode.Selected,
+            _ => BrowserProfileMode.Recent,
+        };
     }
 }

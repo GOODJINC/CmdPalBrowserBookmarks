@@ -34,7 +34,11 @@ Portable Chromium 계열 브라우저는 설정에서 User Data 폴더를 추가
 - Microsoft Edge
 - Google Chrome
 - Mozilla Firefox
-- All browser profiles
+- 브라우저별 프로필 모드
+  - Recently used/default profile
+  - Specific profile
+  - All profiles
+- 브라우저별 특정 프로필 선택
 - Suggest matching bookmarks on the Command Palette home page
 - Korean initial consonant search
 - Additional Chromium user data folders

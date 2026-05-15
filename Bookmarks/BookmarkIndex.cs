@@ -124,7 +124,12 @@ internal sealed class BookmarkIndex
             builder.AppendLine(settings.EnableEdge.ToString());
             builder.AppendLine(settings.EnableChrome.ToString());
             builder.AppendLine(settings.EnableFirefox.ToString());
-            builder.AppendLine(settings.IncludeAllProfiles.ToString());
+            builder.AppendLine(settings.EdgeProfileMode.ToString());
+            builder.AppendLine(settings.SelectedEdgeProfileId);
+            builder.AppendLine(settings.ChromeProfileMode.ToString());
+            builder.AppendLine(settings.SelectedChromeProfileId);
+            builder.AppendLine(settings.FirefoxProfileMode.ToString());
+            builder.AppendLine(settings.SelectedFirefoxProfileId);
             builder.AppendLine(settings.CustomChromiumUserDataFolders);
 
             foreach (var path in catalog.WatchedFiles.OrderBy(path => path, StringComparer.OrdinalIgnoreCase))
