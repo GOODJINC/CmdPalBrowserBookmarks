@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.12.0.schema.json
+PackageIdentifier: GOODJINC.CmdPalBrowserBookmarks
+PackageVersion: 0.1.0
+Platform:
+- Windows.Desktop
+MinimumOSVersion: 10.0.22000.0
+InstallerType: zip
+NestedInstallerType: msix
+PackageFamilyName: CmdPalBrowserBookmarks_gnk3db6bt9dg6
+InstallModes:
+- silent
+UpgradeBehavior: install
+Commands:
+- CmdPalBrowserBookmarks
+Installers:
+- Architecture: x64
+  InstallerUrl: https://github.com/GOODJINC/CmdPalBrowserBookmarks/releases/download/v0.1.0/CmdPalBrowserBookmarks-v0.1.0-x64-msix-test.zip
+  InstallerSha256: 48B502C771B4EC10500A7E46EA980B8A695FAB6823353139EA3F605082FC6C1C
+  NestedInstallerFiles:
+  - RelativeFilePath: CmdPalBrowserBookmarks_0.1.0.0_x64.msix
+ManifestType: installer
+ManifestVersion: 1.12.0
