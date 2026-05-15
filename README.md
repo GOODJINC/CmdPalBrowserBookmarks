@@ -8,11 +8,14 @@ Edge, Chrome, Firefox에 저장된 북마크를 읽어 오기 때문에 Command 
 
 - Edge, Chrome, Firefox 북마크 자동 로드
 - 브라우저 프로필 선택 지원
+- 한국어/영어 UI 지원
+- 북마크 실행 브라우저 선택 지원
 - Command Palette 메인 검색창에서 북마크 추천
 - `??` 같은 별칭으로 확장 내부 검색 가능
 - Enter로 기본 브라우저에서 바로 열기
 - URL 기준 중복 북마크 제거
 - 한 글자 검색 및 한글 초성 검색 지원
+- 기본 설정과 고급 프로필 설정 분리
 - 브라우저에서 추가/수정한 북마크를 캐시 변경 감지로 갱신
 - URL 복사, 제목 복사 컨텍스트 명령 지원
 - 별칭 경로에서 열어도 브라우저가 앞쪽에 표시되도록 지연 실행 처리
@@ -34,14 +37,22 @@ Portable Chromium 계열 브라우저는 설정에서 User Data 폴더를 추가
 - Microsoft Edge
 - Google Chrome
 - Mozilla Firefox
+- UI language
+- 북마크를 열 브라우저
+- Command Palette 홈 화면 북마크 추천
+- 한글 초성 검색
+
+`Browser Bookmarks > 고급 프로필 설정`에서 프로필 관련 옵션을 설정할 수 있습니다.
+
 - 브라우저별 프로필 모드
-  - Recently used/default profile
-  - Specific profile
-  - All profiles
-- 브라우저별 특정 프로필 선택
-- Suggest matching bookmarks on the Command Palette home page
-- Korean initial consonant search
-- Additional Chromium user data folders
+  - 최근 사용/기본 프로필
+  - 특정 프로필
+  - 여러 프로필 선택
+  - 모든 프로필
+- 브라우저별 특정 프로필 선택 또는 여러 프로필 체크 선택
+- 추가 Chromium User Data 폴더
+
+특정 브라우저가 꺼져 있으면 해당 브라우저의 프로필 설정은 표시되지 않습니다. 프로필 모드를 `특정 프로필` 또는 `여러 프로필 선택`으로 저장한 뒤 다시 열면 해당 선택지가 표시됩니다.
 
 메인 검색창에서 바로 북마크를 보려면 `대체 명령 > Search browser bookmarks`를 켜고, `전역 결과에 포함`도 켜세요.
 

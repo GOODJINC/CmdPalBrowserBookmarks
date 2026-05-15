@@ -14,13 +14,19 @@ internal sealed partial class BookmarkSettingsPage : ContentPage
     {
         _settings = settings;
         Icon = Icons.Settings;
-        Title = "Browser Bookmark Settings";
-        Name = "Settings";
+        Title = settings.Strings.BrowserBookmarkSettings;
+        Name = settings.Strings.Settings;
         Commands =
         [
-            new CommandContextItem(new RefreshBookmarksCommand(bookmarkIndex, onRefreshed))
+            new CommandContextItem(new RefreshBookmarksCommand(bookmarkIndex, settings, onRefreshed))
             {
-                Title = "Refresh now",
+                Title = settings.Strings.RefreshNow,
+                Icon = Icons.Refresh,
+            },
+            new CommandContextItem(new ReloadCommandPaletteCommand(settings))
+            {
+                Title = settings.Strings.ReloadCommandPalette,
+                Subtitle = settings.Strings.ReloadCommandPaletteSubtitle,
                 Icon = Icons.Refresh,
             },
         ];
@@ -28,6 +34,6 @@ internal sealed partial class BookmarkSettingsPage : ContentPage
 
     public override IContent[] GetContent()
     {
-        return _settings.Settings.ToContent();
+        return _settings.BasicSettings.ToContent();
     }
 }

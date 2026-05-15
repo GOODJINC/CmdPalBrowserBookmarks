@@ -55,7 +55,10 @@ public static class Program
         {
             var url = Encoding.UTF8.GetString(Convert.FromBase64String(args[1]));
             Thread.Sleep(200);
-            UrlLauncher.Open(url, openMode.Value);
+            var target = args.Length >= 3
+                ? UrlLauncher.ReadTarget(args[2])
+                : BrowserLaunchTarget.Default;
+            UrlLauncher.Open(url, openMode.Value, target);
         }
         catch
         {

@@ -1,5 +1,6 @@
 using CmdPalBrowserBookmarks.Bookmarks;
 using CmdPalBrowserBookmarks.Pages;
+using CmdPalBrowserBookmarks.Settings;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 
 namespace CmdPalBrowserBookmarks.Commands;
@@ -10,11 +11,13 @@ internal sealed partial class BookmarkFallbackCommandItem : FallbackCommandItem
     private const int MinimumQueryLength = 1;
 
     private readonly BookmarkIndex _bookmarkIndex;
+    private readonly SettingsManager _settings;
 
-    public BookmarkFallbackCommandItem(BookmarkIndex bookmarkIndex)
-        : base("Search browser bookmarks", FallbackId)
+    public BookmarkFallbackCommandItem(BookmarkIndex bookmarkIndex, SettingsManager settings)
+        : base(settings.Strings.SearchBrowserBookmarks, FallbackId)
     {
         _bookmarkIndex = bookmarkIndex;
+        _settings = settings;
         Icon = Icons.Bookmarks;
         SetDefaultState();
     }
@@ -39,10 +42,10 @@ internal sealed partial class BookmarkFallbackCommandItem : FallbackCommandItem
         }
 
         Title = bookmark.Title;
-        Subtitle = $"Open bookmark - {BookmarkItemFactory.BuildSubtitle(bookmark)}";
+        Subtitle = $"{_settings.Strings.OpenBookmarkPrefix} - {BookmarkItemFactory.BuildSubtitle(bookmark)}";
         Icon = Icons.Bookmarks;
-        Command = new OpenBookmarkCommand(bookmark);
-        MoreCommands = BookmarkItemFactory.CreateContextCommands(bookmark);
+        Command = new OpenBookmarkCommand(bookmark, _settings);
+        MoreCommands = BookmarkItemFactory.CreateContextCommands(bookmark, _settings);
     }
 
     private IReadOnlyList<BookmarkRecord> GetSearchableBookmarks()
@@ -64,19 +67,19 @@ internal sealed partial class BookmarkFallbackCommandItem : FallbackCommandItem
 
     private void SetDefaultState()
     {
-        Title = "Search browser bookmarks";
-        Subtitle = "Type a bookmark title, URL, or folder";
+        Title = _settings.Strings.SearchBrowserBookmarks;
+        Subtitle = _settings.Strings.TypeBookmarkTitleUrlOrFolder;
         Icon = Icons.Bookmarks;
-        Command = new BookmarksPage(_bookmarkIndex);
+        Command = new BookmarksPage(_bookmarkIndex, _settings);
         MoreCommands = [];
     }
 
     private void SetNoMatchState(string searchText)
     {
-        Title = $"Search browser bookmarks for \"{searchText}\"";
-        Subtitle = "Open Browser Bookmarks and continue searching";
+        Title = _settings.Strings.SearchBookmarksFor(searchText);
+        Subtitle = _settings.Strings.ContinueSearching;
         Icon = Icons.Bookmarks;
-        Command = new BookmarksPage(_bookmarkIndex);
+        Command = new BookmarksPage(_bookmarkIndex, _settings);
         MoreCommands = [];
     }
 }

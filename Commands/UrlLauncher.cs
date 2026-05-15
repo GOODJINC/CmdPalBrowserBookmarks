@@ -5,9 +5,14 @@ namespace CmdPalBrowserBookmarks.Commands;
 
 internal static class UrlLauncher
 {
-    internal static void Open(string url, UrlOpenMode mode)
+    internal static void Open(string url, UrlOpenMode mode, BrowserLaunchTarget target)
     {
-        if (mode == UrlOpenMode.NewWindow && TryOpenInNewWindow(url))
+        if (target != BrowserLaunchTarget.Default && TryOpenInSpecificBrowser(url, mode, target))
+        {
+            return;
+        }
+
+        if (mode == UrlOpenMode.NewWindow && TryOpenInNewWindow(url, GetDefaultBrowserExecutablePath()))
         {
             return;
         }
@@ -15,9 +20,43 @@ internal static class UrlLauncher
         OpenDefault(url);
     }
 
-    private static bool TryOpenInNewWindow(string url)
+    internal static BrowserLaunchTarget ReadTarget(string? value)
     {
-        var browserPath = GetDefaultBrowserExecutablePath();
+        return value?.Trim().ToLowerInvariant() switch
+        {
+            "edge" => BrowserLaunchTarget.Edge,
+            "chrome" => BrowserLaunchTarget.Chrome,
+            "firefox" => BrowserLaunchTarget.Firefox,
+            _ => BrowserLaunchTarget.Default,
+        };
+    }
+
+    internal static string WriteTarget(BrowserLaunchTarget target)
+    {
+        return target switch
+        {
+            BrowserLaunchTarget.Edge => "edge",
+            BrowserLaunchTarget.Chrome => "chrome",
+            BrowserLaunchTarget.Firefox => "firefox",
+            _ => "default",
+        };
+    }
+
+    private static bool TryOpenInSpecificBrowser(string url, UrlOpenMode mode, BrowserLaunchTarget target)
+    {
+        var browserPath = FindBrowserExecutable(target);
+        if (string.IsNullOrWhiteSpace(browserPath))
+        {
+            return false;
+        }
+
+        return mode == UrlOpenMode.NewWindow
+            ? TryOpenInNewWindow(url, browserPath)
+            : TryOpenInBrowser(url, browserPath);
+    }
+
+    private static bool TryOpenInNewWindow(string url, string? browserPath)
+    {
         if (string.IsNullOrWhiteSpace(browserPath))
         {
             return false;
@@ -25,22 +64,8 @@ internal static class UrlLauncher
 
         try
         {
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = browserPath,
-                UseShellExecute = false,
-                WindowStyle = ProcessWindowStyle.Normal,
-            };
-
-            if (IsFirefoxBrowser(browserPath))
-            {
-                startInfo.ArgumentList.Add("-new-window");
-            }
-            else
-            {
-                startInfo.ArgumentList.Add("--new-window");
-            }
-
+            var startInfo = BrowserStartInfo(browserPath);
+            startInfo.ArgumentList.Add(IsFirefoxBrowser(browserPath) ? "-new-window" : "--new-window");
             startInfo.ArgumentList.Add(url);
             Process.Start(startInfo);
             return true;
@@ -51,6 +76,31 @@ internal static class UrlLauncher
         }
     }
 
+    private static bool TryOpenInBrowser(string url, string browserPath)
+    {
+        try
+        {
+            var startInfo = BrowserStartInfo(browserPath);
+            startInfo.ArgumentList.Add(url);
+            Process.Start(startInfo);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static ProcessStartInfo BrowserStartInfo(string browserPath)
+    {
+        return new ProcessStartInfo
+        {
+            FileName = browserPath,
+            UseShellExecute = false,
+            WindowStyle = ProcessWindowStyle.Normal,
+        };
+    }
+
     private static void OpenDefault(string url)
     {
         Process.Start(new ProcessStartInfo
@@ -59,6 +109,86 @@ internal static class UrlLauncher
             UseShellExecute = true,
             WindowStyle = ProcessWindowStyle.Normal,
         });
+    }
+
+    private static string? FindBrowserExecutable(BrowserLaunchTarget target)
+    {
+        return target switch
+        {
+            BrowserLaunchTarget.Edge => FindExecutable("msedge.exe", [
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Microsoft", "Edge", "Application", "msedge.exe"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Microsoft", "Edge", "Application", "msedge.exe"),
+            ]),
+            BrowserLaunchTarget.Chrome => FindExecutable("chrome.exe", [
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Google", "Chrome", "Application", "chrome.exe"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Google", "Chrome", "Application", "chrome.exe"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Google", "Chrome", "Application", "chrome.exe"),
+            ]),
+            BrowserLaunchTarget.Firefox => FindExecutable("firefox.exe", [
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Mozilla Firefox", "firefox.exe"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Mozilla Firefox", "firefox.exe"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Microsoft", "WindowsApps", "firefox.exe"),
+            ]),
+            _ => null,
+        };
+    }
+
+    private static string? FindExecutable(string executableName, IReadOnlyList<string> fallbackPaths)
+    {
+        return FindAppPathExecutable(executableName) ??
+            FindOnPath(executableName) ??
+            fallbackPaths.FirstOrDefault(File.Exists);
+    }
+
+    private static string? FindAppPathExecutable(string executableName)
+    {
+        foreach (var root in new[] { Registry.CurrentUser, Registry.LocalMachine })
+        {
+            try
+            {
+                using var key = root.OpenSubKey($@"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\{executableName}");
+                var path = key?.GetValue(null) as string;
+                if (!string.IsNullOrWhiteSpace(path))
+                {
+                    path = Environment.ExpandEnvironmentVariables(path.Trim('"'));
+                    if (File.Exists(path))
+                    {
+                        return path;
+                    }
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        return null;
+    }
+
+    private static string? FindOnPath(string executableName)
+    {
+        var pathValue = Environment.GetEnvironmentVariable("PATH");
+        if (string.IsNullOrWhiteSpace(pathValue))
+        {
+            return null;
+        }
+
+        foreach (var directory in pathValue.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            try
+            {
+                var candidate = Path.Combine(directory, executableName);
+                if (File.Exists(candidate))
+                {
+                    return candidate;
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        return null;
     }
 
     private static string? GetDefaultBrowserExecutablePath()

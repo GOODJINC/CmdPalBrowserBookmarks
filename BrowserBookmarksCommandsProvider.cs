@@ -24,15 +24,15 @@ internal sealed partial class BrowserBookmarksCommandsProvider : CommandProvider
     public BrowserBookmarksCommandsProvider()
     {
         Id = "CmdPalBrowserBookmarks";
-        DisplayName = "Browser Bookmarks";
+        DisplayName = _settings.Strings.BrowserBookmarks;
         Icon = Icons.Bookmarks;
         Frozen = false;
-        Settings = _settings.Settings;
+        Settings = _settings.BasicSettings;
 
         _bookmarkIndex = new BookmarkIndex(_settings);
-        _bookmarkFallbackCommand = new BookmarkFallbackCommandItem(_bookmarkIndex);
+        _bookmarkFallbackCommand = new BookmarkFallbackCommandItem(_bookmarkIndex, _settings);
         _fallbackCommands = [_bookmarkFallbackCommand];
-        _settings.Settings.SettingsChanged += (_, _) =>
+        _settings.SettingsChanged += (_, _) =>
         {
             _bookmarkIndex.Invalidate();
             lock (_gate)
@@ -41,6 +41,7 @@ internal sealed partial class BrowserBookmarksCommandsProvider : CommandProvider
                 _hasLoadedBookmarks = false;
             }
 
+            DisplayName = _settings.Strings.BrowserBookmarks;
             RebuildTopLevelCommands([], false);
             RaiseItemsChanged(_topLevelCommands.Length);
             QueueBookmarkRefresh(notifyItemsChanged: true);
@@ -122,14 +123,14 @@ internal sealed partial class BrowserBookmarksCommandsProvider : CommandProvider
     private void RebuildTopLevelCommands(IReadOnlyList<BookmarkRecord> bookmarks, bool hasLoadedBookmarks)
     {
         var bookmarksSubtitle = hasLoadedBookmarks
-            ? $"{bookmarks.Count:N0} bookmarks from enabled browsers"
-            : "Loading bookmarks from enabled browsers";
+            ? _settings.Strings.BookmarksFromEnabledBrowsers(bookmarks.Count)
+            : _settings.Strings.LoadingBookmarks;
 
         List<ICommandItem> commands =
         [
-            new CommandItem(new BookmarksPage(_bookmarkIndex))
+            new CommandItem(new BookmarksPage(_bookmarkIndex, _settings))
             {
-                Title = "Browser Bookmarks",
+                Title = _settings.Strings.BrowserBookmarks,
                 Subtitle = bookmarksSubtitle,
                 Icon = Icons.Bookmarks,
             },
@@ -140,11 +141,17 @@ internal sealed partial class BrowserBookmarksCommandsProvider : CommandProvider
                 RaiseItemsChanged(_topLevelCommands.Length);
             }))
             {
-                Title = "Browser Bookmark Settings",
-                Subtitle = "Choose Edge, Chrome, Firefox, profiles, and home-page suggestions",
+                Title = _settings.Strings.BrowserBookmarkSettings,
+                Subtitle = _settings.Strings.SettingsSubtitle,
                 Icon = Icons.Settings,
             },
-            new CommandItem(new RefreshBookmarksCommand(_bookmarkIndex, () =>
+            new CommandItem(new AdvancedProfileSettingsPage(_settings))
+            {
+                Title = _settings.Strings.AdvancedProfileSettings,
+                Subtitle = _settings.Strings.AdvancedProfileSettingsSubtitle,
+                Icon = Icons.Settings,
+            },
+            new CommandItem(new RefreshBookmarksCommand(_bookmarkIndex, _settings, () =>
             {
                 var currentBookmarks = _bookmarkIndex.GetCachedBookmarks();
                 lock (_gate)
@@ -157,8 +164,8 @@ internal sealed partial class BrowserBookmarksCommandsProvider : CommandProvider
                 RaiseItemsChanged(_topLevelCommands.Length);
             }))
             {
-                Title = "Refresh Browser Bookmarks",
-                Subtitle = "Reload bookmark files from enabled browsers",
+                Title = _settings.Strings.RefreshBrowserBookmarks,
+                Subtitle = _settings.Strings.RefreshBrowserBookmarksSubtitle,
                 Icon = Icons.Refresh,
             },
         ];

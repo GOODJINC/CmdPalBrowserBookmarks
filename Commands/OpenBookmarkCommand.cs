@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 using CmdPalBrowserBookmarks.Bookmarks;
+using CmdPalBrowserBookmarks.Settings;
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 
@@ -9,13 +10,15 @@ namespace CmdPalBrowserBookmarks.Commands;
 internal sealed partial class OpenBookmarkCommand : InvokableCommand
 {
     private readonly BookmarkRecord _bookmark;
+    private readonly SettingsManager _settings;
     private readonly UrlOpenMode _openMode;
 
-    public OpenBookmarkCommand(BookmarkRecord bookmark, UrlOpenMode openMode = UrlOpenMode.Default)
+    public OpenBookmarkCommand(BookmarkRecord bookmark, SettingsManager settings, UrlOpenMode openMode = UrlOpenMode.Default)
     {
         _bookmark = bookmark;
+        _settings = settings;
         _openMode = openMode;
-        Name = openMode == UrlOpenMode.NewWindow ? "Open in new window" : "Open";
+        Name = openMode == UrlOpenMode.NewWindow ? settings.Strings.OpenInNewWindow : settings.Strings.Open;
         Icon = Icons.Open;
     }
 
@@ -28,16 +31,17 @@ internal sealed partial class OpenBookmarkCommand : InvokableCommand
         }
         catch (Exception ex)
         {
-            return CommandResult.ShowToast($"Failed to open bookmark: {ex.Message}");
+            return CommandResult.ShowToast(_settings.Strings.FailedToOpenBookmark(ex.Message));
         }
     }
 
     private void OpenAfterPaletteDismisses(UrlOpenMode openMode)
     {
+        var target = ResolveTarget(_settings.LaunchBrowserMode, _bookmark.Source);
         var processPath = Environment.ProcessPath;
         if (string.IsNullOrWhiteSpace(processPath))
         {
-            UrlLauncher.Open(_bookmark.Url, openMode);
+            UrlLauncher.Open(_bookmark.Url, openMode, target);
             return;
         }
 
@@ -56,6 +60,25 @@ internal sealed partial class OpenBookmarkCommand : InvokableCommand
 
         startInfo.ArgumentList.Add(openArgument);
         startInfo.ArgumentList.Add(encodedUrl);
+        startInfo.ArgumentList.Add(UrlLauncher.WriteTarget(target));
         Process.Start(startInfo);
+    }
+
+    private static BrowserLaunchTarget ResolveTarget(BrowserLaunchMode mode, BookmarkSourceKind source)
+    {
+        return mode switch
+        {
+            BrowserLaunchMode.Edge => BrowserLaunchTarget.Edge,
+            BrowserLaunchMode.Chrome => BrowserLaunchTarget.Chrome,
+            BrowserLaunchMode.Firefox => BrowserLaunchTarget.Firefox,
+            BrowserLaunchMode.SourceBrowser => source switch
+            {
+                BookmarkSourceKind.Edge => BrowserLaunchTarget.Edge,
+                BookmarkSourceKind.Chrome => BrowserLaunchTarget.Chrome,
+                BookmarkSourceKind.Firefox => BrowserLaunchTarget.Firefox,
+                _ => BrowserLaunchTarget.Default,
+            },
+            _ => BrowserLaunchTarget.Default,
+        };
     }
 }

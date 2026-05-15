@@ -1,4 +1,5 @@
 using CmdPalBrowserBookmarks.Bookmarks;
+using CmdPalBrowserBookmarks.Settings;
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 
@@ -7,13 +8,15 @@ namespace CmdPalBrowserBookmarks.Commands;
 internal sealed partial class RefreshBookmarksCommand : InvokableCommand
 {
     private readonly BookmarkIndex _bookmarkIndex;
+    private readonly SettingsManager _settings;
     private readonly Action _onRefreshed;
 
-    public RefreshBookmarksCommand(BookmarkIndex bookmarkIndex, Action onRefreshed)
+    public RefreshBookmarksCommand(BookmarkIndex bookmarkIndex, SettingsManager settings, Action onRefreshed)
     {
         _bookmarkIndex = bookmarkIndex;
+        _settings = settings;
         _onRefreshed = onRefreshed;
-        Name = "Refresh";
+        Name = settings.Strings.Refresh;
         Icon = Icons.Refresh;
     }
 
@@ -24,11 +27,11 @@ internal sealed partial class RefreshBookmarksCommand : InvokableCommand
             _bookmarkIndex.Invalidate();
             var count = _bookmarkIndex.GetBookmarks().Count;
             _onRefreshed();
-            return CommandResult.ShowToast($"Loaded {count:N0} browser bookmarks.");
+            return CommandResult.ShowToast(_settings.Strings.LoadedBookmarks(count));
         }
         catch (Exception ex)
         {
-            return CommandResult.ShowToast($"Failed to refresh browser bookmarks: {ex.Message}");
+            return CommandResult.ShowToast(_settings.Strings.FailedToRefreshBookmarks(ex.Message));
         }
     }
 }

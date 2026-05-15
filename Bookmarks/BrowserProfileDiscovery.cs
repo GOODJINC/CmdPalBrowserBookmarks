@@ -23,7 +23,8 @@ internal static class BrowserProfileDiscovery
                 "Microsoft Edge",
                 Path.Combine(localAppData, "Microsoft", "Edge", "User Data"),
                 settings.EdgeProfileMode,
-                settings.SelectedEdgeProfileId);
+                settings.SelectedEdgeProfileId,
+                settings.SelectedEdgeProfileIds);
         }
 
         if (settings.EnableChrome)
@@ -35,7 +36,8 @@ internal static class BrowserProfileDiscovery
                 "Google Chrome",
                 Path.Combine(localAppData, "Google", "Chrome", "User Data"),
                 settings.ChromeProfileMode,
-                settings.SelectedChromeProfileId);
+                settings.SelectedChromeProfileId,
+                settings.SelectedChromeProfileIds);
         }
 
         foreach (var customPath in ParseCustomChromiumPaths(settings.CustomChromiumUserDataFolders))
@@ -47,7 +49,8 @@ internal static class BrowserProfileDiscovery
                 "Chromium",
                 customPath,
                 settings.ChromeProfileMode,
-                settings.SelectedChromeProfileId);
+                settings.SelectedChromeProfileId,
+                settings.SelectedChromeProfileIds);
         }
 
         if (settings.EnableFirefox)
@@ -57,7 +60,8 @@ internal static class BrowserProfileDiscovery
                 watchedFiles,
                 GetFirefoxRoots(roamingAppData, localAppData),
                 settings.FirefoxProfileMode,
-                settings.SelectedFirefoxProfileId);
+                settings.SelectedFirefoxProfileId,
+                settings.SelectedFirefoxProfileIds);
         }
 
         return new BookmarkSourceCatalog(
@@ -73,7 +77,8 @@ internal static class BrowserProfileDiscovery
         string browserName,
         string userDataPath,
         BrowserProfileMode profileMode,
-        string selectedProfileId)
+        string selectedProfileId,
+        IReadOnlySet<string> selectedProfileIds)
     {
         var discovery = GetChromiumProfiles(source, browserName, userDataPath);
         if (discovery.LocalStatePath is not null)
@@ -85,7 +90,8 @@ internal static class BrowserProfileDiscovery
             discovery.Profiles,
             discovery.LastUsedProfileId,
             profileMode,
-            selectedProfileId);
+            selectedProfileId,
+            selectedProfileIds);
 
         foreach (var profile in selectedProfiles)
         {
@@ -143,11 +149,13 @@ internal static class BrowserProfileDiscovery
         IReadOnlyList<ChromiumProfile> profiles,
         string? lastUsedProfileId,
         BrowserProfileMode profileMode,
-        string selectedProfileId)
+        string selectedProfileId,
+        IReadOnlySet<string> selectedProfileIds)
     {
         return profileMode switch
         {
             BrowserProfileMode.All => profiles,
+            BrowserProfileMode.Multiple => SelectMultipleChromiumProfiles(profiles, selectedProfileIds, lastUsedProfileId),
             BrowserProfileMode.Selected => SelectSpecificChromiumProfile(profiles, selectedProfileId, lastUsedProfileId),
             _ => SelectPreferredChromiumProfile(profiles, lastUsedProfileId),
         };
@@ -163,6 +171,19 @@ internal static class BrowserProfileDiscovery
         return profile is null
             ? SelectPreferredChromiumProfile(profiles, lastUsedProfileId)
             : [profile];
+    }
+
+    private static IReadOnlyList<ChromiumProfile> SelectMultipleChromiumProfiles(
+        IReadOnlyList<ChromiumProfile> profiles,
+        IReadOnlySet<string> selectedProfileIds,
+        string? lastUsedProfileId)
+    {
+        var selectedProfiles = profiles
+            .Where(profile => ProfileMatchesAny(profile.ProfileId, profile.ProfileName, selectedProfileIds))
+            .ToArray();
+        return selectedProfiles.Length == 0
+            ? SelectPreferredChromiumProfile(profiles, lastUsedProfileId)
+            : selectedProfiles;
     }
 
     private static IReadOnlyList<ChromiumProfile> SelectPreferredChromiumProfile(
@@ -247,7 +268,8 @@ internal static class BrowserProfileDiscovery
         List<string> watchedFiles,
         IEnumerable<string> firefoxRoots,
         BrowserProfileMode profileMode,
-        string selectedProfileId)
+        string selectedProfileId,
+        IReadOnlySet<string> selectedProfileIds)
     {
         var discoveredProfiles = new List<FirefoxProfile>();
         foreach (var firefoxRoot in firefoxRoots.Distinct(StringComparer.OrdinalIgnoreCase))
@@ -277,7 +299,8 @@ internal static class BrowserProfileDiscovery
                 .OrderBy(profile => profile.ProfileName, StringComparer.CurrentCultureIgnoreCase)
                 .ToArray(),
             profileMode,
-            selectedProfileId);
+            selectedProfileId,
+            selectedProfileIds);
 
         foreach (var profile in selectedProfiles)
         {
@@ -319,11 +342,13 @@ internal static class BrowserProfileDiscovery
     private static IReadOnlyList<FirefoxProfile> SelectFirefoxProfiles(
         IReadOnlyList<FirefoxProfile> profiles,
         BrowserProfileMode profileMode,
-        string selectedProfileId)
+        string selectedProfileId,
+        IReadOnlySet<string> selectedProfileIds)
     {
         return profileMode switch
         {
             BrowserProfileMode.All => profiles,
+            BrowserProfileMode.Multiple => SelectMultipleFirefoxProfiles(profiles, selectedProfileIds),
             BrowserProfileMode.Selected => SelectSpecificFirefoxProfile(profiles, selectedProfileId),
             _ => SelectPreferredFirefoxProfile(profiles),
         };
@@ -338,6 +363,18 @@ internal static class BrowserProfileDiscovery
         return profile is null
             ? SelectPreferredFirefoxProfile(profiles)
             : [profile];
+    }
+
+    private static IReadOnlyList<FirefoxProfile> SelectMultipleFirefoxProfiles(
+        IReadOnlyList<FirefoxProfile> profiles,
+        IReadOnlySet<string> selectedProfileIds)
+    {
+        var selectedProfiles = profiles
+            .Where(profile => ProfileMatchesAny(profile.ProfileId, profile.ProfileName, selectedProfileIds))
+            .ToArray();
+        return selectedProfiles.Length == 0
+            ? SelectPreferredFirefoxProfile(profiles)
+            : selectedProfiles;
     }
 
     private static IReadOnlyList<FirefoxProfile> SelectPreferredFirefoxProfile(IReadOnlyList<FirefoxProfile> profiles)
@@ -455,6 +492,11 @@ internal static class BrowserProfileDiscovery
         return !string.IsNullOrWhiteSpace(selectedProfileId) &&
             (string.Equals(profileId, selectedProfileId, StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(profileName, selectedProfileId, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool ProfileMatchesAny(string profileId, string profileName, IReadOnlySet<string> selectedProfileIds)
+    {
+        return selectedProfileIds.Contains(profileId) || selectedProfileIds.Contains(profileName);
     }
 
     private sealed record ChromiumProfileMetadata(

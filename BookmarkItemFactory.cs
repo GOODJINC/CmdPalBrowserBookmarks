@@ -1,5 +1,6 @@
 using CmdPalBrowserBookmarks.Bookmarks;
 using CmdPalBrowserBookmarks.Commands;
+using CmdPalBrowserBookmarks.Settings;
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using Windows.System;
@@ -8,48 +9,48 @@ namespace CmdPalBrowserBookmarks;
 
 internal static class BookmarkItemFactory
 {
-    internal static CommandItem CreateCommandItem(BookmarkRecord bookmark)
+    internal static CommandItem CreateCommandItem(BookmarkRecord bookmark, SettingsManager settings)
     {
-        return ApplyCommonProperties(new CommandItem(new OpenBookmarkCommand(bookmark)), bookmark);
+        return ApplyCommonProperties(new CommandItem(new OpenBookmarkCommand(bookmark, settings)), bookmark, settings);
     }
 
-    internal static ListItem CreateListItem(BookmarkRecord bookmark)
+    internal static ListItem CreateListItem(BookmarkRecord bookmark, SettingsManager settings)
     {
-        var item = new ListItem(new OpenBookmarkCommand(bookmark));
-        ApplyCommonProperties(item, bookmark);
+        var item = new ListItem(new OpenBookmarkCommand(bookmark, settings));
+        ApplyCommonProperties(item, bookmark, settings);
         item.TextToSuggest = bookmark.Title;
         item.Section = bookmark.BrowserName;
         return item;
     }
 
-    internal static IContextItem[] CreateContextCommands(BookmarkRecord bookmark)
+    internal static IContextItem[] CreateContextCommands(BookmarkRecord bookmark, SettingsManager settings)
     {
         return
         [
-            new CommandContextItem(new OpenBookmarkCommand(bookmark, UrlOpenMode.NewWindow))
+            new CommandContextItem(new OpenBookmarkCommand(bookmark, settings, UrlOpenMode.NewWindow))
             {
-                Title = "Open in new window",
+                Title = settings.Strings.OpenInNewWindow,
                 Subtitle = bookmark.Url,
                 Icon = Icons.OpenInNewWindow,
                 RequestedShortcut = KeyChordHelpers.FromModifiers(shift: true, vkey: VirtualKey.Enter),
             },
             new CommandContextItem(new CopyTextCommand(bookmark.Url))
             {
-                Title = "Copy URL",
+                Title = settings.Strings.CopyUrl,
                 Subtitle = bookmark.Url,
                 Icon = Icons.Copy,
                 RequestedShortcut = KeyChordHelpers.FromModifiers(ctrl: true, vkey: VirtualKey.C),
             },
             new CommandContextItem(new CopyTextCommand(bookmark.Title))
             {
-                Title = "Copy title",
+                Title = settings.Strings.CopyTitle,
                 Subtitle = bookmark.Title,
                 Icon = Icons.Copy,
                 RequestedShortcut = KeyChordHelpers.FromModifiers(ctrl: true, shift: true, vkey: VirtualKey.C),
             },
             new CommandContextItem(new CopyTextCommand(BuildMarkdownLink(bookmark)))
             {
-                Title = "Copy Markdown link",
+                Title = settings.Strings.CopyMarkdownLink,
                 Subtitle = BuildMarkdownLink(bookmark),
                 Icon = Icons.Copy,
                 RequestedShortcut = KeyChordHelpers.FromModifiers(ctrl: true, alt: true, vkey: VirtualKey.C),
@@ -57,13 +58,13 @@ internal static class BookmarkItemFactory
         ];
     }
 
-    private static T ApplyCommonProperties<T>(T item, BookmarkRecord bookmark)
+    private static T ApplyCommonProperties<T>(T item, BookmarkRecord bookmark, SettingsManager settings)
         where T : CommandItem
     {
         item.Title = bookmark.Title;
         item.Subtitle = BuildSubtitle(bookmark);
         item.Icon = Icons.Bookmarks;
-        item.MoreCommands = CreateContextCommands(bookmark);
+        item.MoreCommands = CreateContextCommands(bookmark, settings);
 
         return item;
     }
