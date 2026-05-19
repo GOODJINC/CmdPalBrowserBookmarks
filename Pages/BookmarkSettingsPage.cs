@@ -13,6 +13,7 @@ internal sealed partial class BookmarkSettingsPage : ContentPage
     public BookmarkSettingsPage(SettingsManager settings, BookmarkIndex bookmarkIndex, Action onRefreshed)
     {
         _settings = settings;
+        Id = "CmdPalBrowserBookmarks.Settings";
         Icon = Icons.Settings;
         Title = settings.Strings.BrowserBookmarkSettings;
         Name = settings.Strings.Settings;
@@ -30,6 +31,12 @@ internal sealed partial class BookmarkSettingsPage : ContentPage
                 Icon = Icons.Refresh,
             },
         ];
+    }
+
+    public void RefreshText()
+    {
+        Title = _settings.Strings.BrowserBookmarkSettings;
+        Name = _settings.Strings.Settings;
     }
 
     public override IContent[] GetContent()

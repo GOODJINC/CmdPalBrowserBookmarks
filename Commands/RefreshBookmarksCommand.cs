@@ -16,8 +16,14 @@ internal sealed partial class RefreshBookmarksCommand : InvokableCommand
         _bookmarkIndex = bookmarkIndex;
         _settings = settings;
         _onRefreshed = onRefreshed;
+        Id = "CmdPalBrowserBookmarks.RefreshBookmarks";
         Name = settings.Strings.Refresh;
         Icon = Icons.Refresh;
+    }
+
+    public void RefreshText()
+    {
+        Name = _settings.Strings.Refresh;
     }
 
     public override ICommandResult Invoke()

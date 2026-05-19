@@ -12,6 +12,7 @@ internal sealed partial class ReloadCommandPaletteCommand : InvokableCommand
     public ReloadCommandPaletteCommand(SettingsManager settings)
     {
         _settings = settings;
+        Id = "CmdPalBrowserBookmarks.ReloadCommandPalette";
         Name = settings.Strings.ReloadCommandPalette;
         Icon = Icons.Refresh;
     }

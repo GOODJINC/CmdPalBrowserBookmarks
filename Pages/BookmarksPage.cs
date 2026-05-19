@@ -15,10 +15,18 @@ internal sealed partial class BookmarksPage : DynamicListPage
     {
         _bookmarkIndex = bookmarkIndex;
         _settings = settings;
+        Id = "CmdPalBrowserBookmarks.Bookmarks";
         Icon = Icons.Bookmarks;
         Title = settings.Strings.BrowserBookmarks;
         Name = settings.Strings.Search;
         PlaceholderText = settings.Strings.SearchBrowserBookmarksPlaceholder;
+    }
+
+    public void RefreshText()
+    {
+        Title = _settings.Strings.BrowserBookmarks;
+        Name = _settings.Strings.Search;
+        PlaceholderText = _settings.Strings.SearchBrowserBookmarksPlaceholder;
     }
 
     public override void UpdateSearchText(string oldSearch, string newSearch)

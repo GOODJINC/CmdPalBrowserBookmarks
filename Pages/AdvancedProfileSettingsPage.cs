@@ -11,9 +11,16 @@ internal sealed partial class AdvancedProfileSettingsPage : ContentPage
     public AdvancedProfileSettingsPage(SettingsManager settings)
     {
         _settings = settings;
+        Id = "CmdPalBrowserBookmarks.AdvancedProfileSettings";
         Icon = Icons.Settings;
         Title = settings.Strings.AdvancedProfileSettings;
         Name = settings.Strings.AdvancedProfileSettings;
+    }
+
+    public void RefreshText()
+    {
+        Title = _settings.Strings.AdvancedProfileSettings;
+        Name = _settings.Strings.AdvancedProfileSettings;
     }
 
     public override IContent[] GetContent()

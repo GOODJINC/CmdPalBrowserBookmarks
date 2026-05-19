@@ -16,6 +16,14 @@ internal sealed partial class BrowserBookmarksCommandsProvider : CommandProvider
     private readonly BookmarkIndex _bookmarkIndex;
     private readonly BookmarkFallbackCommandItem _bookmarkFallbackCommand;
     private readonly IFallbackCommandItem[] _fallbackCommands;
+    private readonly BookmarksPage _bookmarksPage;
+    private readonly BookmarkSettingsPage _settingsPage;
+    private readonly AdvancedProfileSettingsPage _advancedProfileSettingsPage;
+    private readonly RefreshBookmarksCommand _refreshBookmarksCommand;
+    private readonly CommandItem _bookmarksCommandItem;
+    private readonly CommandItem _settingsCommandItem;
+    private readonly CommandItem _advancedProfileSettingsCommandItem;
+    private readonly CommandItem _refreshCommandItem;
     private ICommandItem[] _topLevelCommands = [];
     private IReadOnlyList<BookmarkRecord> _loadedBookmarks = [];
     private bool _hasLoadedBookmarks;
@@ -32,6 +40,51 @@ internal sealed partial class BrowserBookmarksCommandsProvider : CommandProvider
         _bookmarkIndex = new BookmarkIndex(_settings);
         _bookmarkFallbackCommand = new BookmarkFallbackCommandItem(_bookmarkIndex, _settings);
         _fallbackCommands = [_bookmarkFallbackCommand];
+        _bookmarksPage = new BookmarksPage(_bookmarkIndex, _settings);
+        _settingsPage = new BookmarkSettingsPage(_settings, _bookmarkIndex, () =>
+        {
+            var currentBookmarks = _loadedBookmarks;
+            UpdateTopLevelCommands(currentBookmarks, _hasLoadedBookmarks);
+            RaiseItemsChanged(_topLevelCommands.Length);
+        });
+        _advancedProfileSettingsPage = new AdvancedProfileSettingsPage(_settings);
+        _refreshBookmarksCommand = new RefreshBookmarksCommand(_bookmarkIndex, _settings, () =>
+        {
+            var currentBookmarks = _bookmarkIndex.GetCachedBookmarks();
+            lock (_gate)
+            {
+                _loadedBookmarks = currentBookmarks;
+                _hasLoadedBookmarks = true;
+            }
+
+            UpdateTopLevelCommands(currentBookmarks, true);
+            RaiseItemsChanged(_topLevelCommands.Length);
+        });
+
+        _bookmarksCommandItem = new CommandItem(_bookmarksPage)
+        {
+            Icon = Icons.Bookmarks,
+        };
+        _settingsCommandItem = new CommandItem(_settingsPage)
+        {
+            Icon = Icons.Settings,
+        };
+        _advancedProfileSettingsCommandItem = new CommandItem(_advancedProfileSettingsPage)
+        {
+            Icon = Icons.Settings,
+        };
+        _refreshCommandItem = new CommandItem(_refreshBookmarksCommand)
+        {
+            Icon = Icons.Refresh,
+        };
+        _topLevelCommands =
+        [
+            _bookmarksCommandItem,
+            _settingsCommandItem,
+            _advancedProfileSettingsCommandItem,
+            _refreshCommandItem,
+        ];
+
         _settings.SettingsChanged += (_, _) =>
         {
             _bookmarkIndex.Invalidate();
@@ -42,12 +95,12 @@ internal sealed partial class BrowserBookmarksCommandsProvider : CommandProvider
             }
 
             DisplayName = _settings.Strings.BrowserBookmarks;
-            RebuildTopLevelCommands([], false);
+            UpdateTopLevelCommands([], false);
             RaiseItemsChanged(_topLevelCommands.Length);
             QueueBookmarkRefresh(notifyItemsChanged: true);
         };
 
-        RebuildTopLevelCommands([], false);
+        UpdateTopLevelCommands([], false);
         QueueBookmarkRefresh(notifyItemsChanged: false);
     }
 
@@ -92,7 +145,7 @@ internal sealed partial class BrowserBookmarksCommandsProvider : CommandProvider
                     _hasLoadedBookmarks = true;
                 }
 
-                RebuildTopLevelCommands(bookmarks, true);
+                UpdateTopLevelCommands(bookmarks, true);
                 if (notifyItemsChanged)
                 {
                     RaiseItemsChanged(_topLevelCommands.Length);
@@ -103,7 +156,7 @@ internal sealed partial class BrowserBookmarksCommandsProvider : CommandProvider
                 var bookmarks = _bookmarkIndex.GetCachedBookmarks();
                 if (bookmarks.Count > 0)
                 {
-                    RebuildTopLevelCommands(bookmarks, true);
+                    UpdateTopLevelCommands(bookmarks, true);
                     if (notifyItemsChanged)
                     {
                         RaiseItemsChanged(_topLevelCommands.Length);
@@ -120,59 +173,35 @@ internal sealed partial class BrowserBookmarksCommandsProvider : CommandProvider
         });
     }
 
-    private void RebuildTopLevelCommands(IReadOnlyList<BookmarkRecord> bookmarks, bool hasLoadedBookmarks)
+    private void UpdateTopLevelCommands(IReadOnlyList<BookmarkRecord> bookmarks, bool hasLoadedBookmarks)
     {
         var bookmarksSubtitle = hasLoadedBookmarks
             ? _settings.Strings.BookmarksFromEnabledBrowsers(bookmarks.Count)
             : _settings.Strings.LoadingBookmarks;
 
-        List<ICommandItem> commands =
-        [
-            new CommandItem(new BookmarksPage(_bookmarkIndex, _settings))
-            {
-                Title = _settings.Strings.BrowserBookmarks,
-                Subtitle = bookmarksSubtitle,
-                Icon = Icons.Bookmarks,
-            },
-            new CommandItem(new BookmarkSettingsPage(_settings, _bookmarkIndex, () =>
-            {
-                var currentBookmarks = _loadedBookmarks;
-                RebuildTopLevelCommands(currentBookmarks, _hasLoadedBookmarks);
-                RaiseItemsChanged(_topLevelCommands.Length);
-            }))
-            {
-                Title = _settings.Strings.BrowserBookmarkSettings,
-                Subtitle = _settings.Strings.SettingsSubtitle,
-                Icon = Icons.Settings,
-            },
-            new CommandItem(new AdvancedProfileSettingsPage(_settings))
-            {
-                Title = _settings.Strings.AdvancedProfileSettings,
-                Subtitle = _settings.Strings.AdvancedProfileSettingsSubtitle,
-                Icon = Icons.Settings,
-            },
-            new CommandItem(new RefreshBookmarksCommand(_bookmarkIndex, _settings, () =>
-            {
-                var currentBookmarks = _bookmarkIndex.GetCachedBookmarks();
-                lock (_gate)
-                {
-                    _loadedBookmarks = currentBookmarks;
-                    _hasLoadedBookmarks = true;
-                }
+        _bookmarksPage.RefreshText();
+        _settingsPage.RefreshText();
+        _advancedProfileSettingsPage.RefreshText();
+        _refreshBookmarksCommand.RefreshText();
 
-                RebuildTopLevelCommands(currentBookmarks, true);
-                RaiseItemsChanged(_topLevelCommands.Length);
-            }))
-            {
-                Title = _settings.Strings.RefreshBrowserBookmarks,
-                Subtitle = _settings.Strings.RefreshBrowserBookmarksSubtitle,
-                Icon = Icons.Refresh,
-            },
-        ];
+        _bookmarksCommandItem.Title = _settings.Strings.BrowserBookmarks;
+        _bookmarksCommandItem.Subtitle = bookmarksSubtitle;
+        _settingsCommandItem.Title = _settings.Strings.BrowserBookmarkSettings;
+        _settingsCommandItem.Subtitle = _settings.Strings.SettingsSubtitle;
+        _advancedProfileSettingsCommandItem.Title = _settings.Strings.AdvancedProfileSettings;
+        _advancedProfileSettingsCommandItem.Subtitle = _settings.Strings.AdvancedProfileSettingsSubtitle;
+        _refreshCommandItem.Title = _settings.Strings.RefreshBrowserBookmarks;
+        _refreshCommandItem.Subtitle = _settings.Strings.RefreshBrowserBookmarksSubtitle;
 
         lock (_gate)
         {
-            _topLevelCommands = commands.ToArray();
+            _topLevelCommands =
+            [
+                _bookmarksCommandItem,
+                _settingsCommandItem,
+                _advancedProfileSettingsCommandItem,
+                _refreshCommandItem,
+            ];
         }
     }
 }
