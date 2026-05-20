@@ -1,115 +1,126 @@
-﻿# Browser Bookmarks for PowerToys Command Palette
+# Browser Bookmarks for Command Palette
 
-PowerToys Command Palette에서 브라우저 북마크를 바로 검색하고 여는 확장입니다.
+English | [한국어](README.ko.md)
 
-Edge, Chrome, Firefox에 저장된 북마크를 읽어 오기 때문에 Command Palette에 북마크를 따로 등록할 필요가 없습니다.
+Search and open your browser bookmarks directly from Microsoft PowerToys Command Palette.
 
-## 주요 기능
+Browser Bookmarks reads bookmarks from Microsoft Edge, Google Chrome, and Mozilla Firefox, so you do not need to register the same bookmarks again inside Command Palette.
 
-- Edge, Chrome, Firefox 북마크 자동 로드
-- 브라우저 프로필 선택 지원
-- 한국어/영어 UI 지원
-- 북마크 실행 브라우저 선택 지원
-- Command Palette 메인 검색창에서 북마크 추천
-- `??` 같은 별칭으로 확장 내부 검색 가능
-- Enter로 기본 브라우저에서 바로 열기
-- URL 기준 중복 북마크 제거
-- 한 글자 검색 및 한글 초성 검색 지원
-- 기본 설정과 고급 프로필 설정 분리
-- 브라우저에서 추가/수정한 북마크를 캐시 변경 감지로 갱신
-- URL 복사, 제목 복사 컨텍스트 명령 지원
-- 별칭 경로에서 열어도 브라우저가 앞쪽에 표시되도록 지연 실행 처리
+[Privacy Policy](PRIVACY.md) | [개인정보처리방침](PRIVACY.ko.md)
 
-## 지원 브라우저
+## Install
 
-| 브라우저 | 읽는 데이터 |
+Microsoft Store release is being prepared.
+
+After the Store listing is published, the Store link will be added here.
+
+For now, use the latest GitHub release:
+
+https://github.com/GOODJINC/CmdPalBrowserBookmarks/releases
+
+## Features
+
+- Search bookmarks from Edge, Chrome, and Firefox
+- Search from the Command Palette home screen
+- Open bookmarks with the default browser or a selected browser
+- Choose browser profiles, including specific or multiple profiles
+- Korean and English UI
+- Korean initial consonant search, such as `ㄴㅇㅂ` for `네이버`
+- Copy URL, title, or Markdown link from bookmark results
+- Refresh bookmark cache after browser changes
+- Local-only bookmark processing
+
+## Supported Browsers
+
+| Browser | Source |
 | --- | --- |
-| Microsoft Edge | Chromium `Bookmarks` 파일 |
-| Google Chrome | Chromium `Bookmarks` 파일 |
-| Mozilla Firefox | `places.sqlite` |
+| Microsoft Edge | Chromium `Bookmarks` file |
+| Google Chrome | Chromium `Bookmarks` file |
+| Mozilla Firefox | Firefox `places.sqlite` database |
 
-Portable Chromium 계열 브라우저는 설정에서 User Data 폴더를 추가할 수 있습니다.
+Portable Chromium-based browsers can be added by setting custom User Data folders.
 
-## Command Palette 설정
+## Usage
 
-`확장 > Browser Bookmarks`에서 설정할 수 있습니다.
+1. Install the extension.
+2. Open PowerToys Command Palette.
+3. Run `reload` if the extension does not appear immediately.
+4. Search for a bookmark name, URL, or Korean initial consonants.
+5. Press `Enter` to open the selected bookmark.
 
-- Microsoft Edge
-- Google Chrome
-- Mozilla Firefox
-- UI language
-- 북마크를 열 브라우저
-- Command Palette 홈 화면 북마크 추천
-- 한글 초성 검색
+To show bookmark matches directly on the Command Palette home screen, enable:
 
-`Browser Bookmarks > 고급 프로필 설정`에서 프로필 관련 옵션을 설정할 수 있습니다.
+```text
+Extensions > Browser Bookmarks > Fallback command > Include in global results
+```
 
-- 브라우저별 프로필 모드
-  - 최근 사용/기본 프로필
-  - 특정 프로필
-  - 여러 프로필 선택
-  - 모든 프로필
-- 브라우저별 특정 프로필 선택 또는 여러 프로필 체크 선택
-- 추가 Chromium User Data 폴더
+## Settings
 
-특정 브라우저가 꺼져 있으면 해당 브라우저의 프로필 설정은 표시되지 않습니다. 프로필 모드를 `특정 프로필` 또는 `여러 프로필 선택`으로 저장한 뒤 다시 열면 해당 선택지가 표시됩니다.
+Open:
 
-메인 검색창에서 바로 북마크를 보려면 `대체 명령 > Search browser bookmarks`를 켜고, `전역 결과에 포함`도 켜세요.
+```text
+Command Palette Settings > Extensions > Browser Bookmarks
+```
 
-## 빌드
+Available settings include:
 
-필요한 도구:
+- Enabled browsers
+- Browser launch behavior
+- Language
+- Home screen suggestions
+- Korean initial consonant search
+- Browser profile selection
+- Portable Chromium User Data folders
 
-- Visual Studio 2026 또는 Windows SDK 포함 빌드 환경
+## Shortcuts
+
+| Shortcut | Action |
+| --- | --- |
+| `Enter` | Open bookmark |
+| `Shift` + `Enter` | Open in a new browser window |
+| `Ctrl` + `C` | Copy URL |
+| `Ctrl` + `Shift` + `C` | Copy title |
+| `Ctrl` + `Alt` + `C` | Copy Markdown link |
+
+## Privacy
+
+Bookmark data is read and processed locally on your device.
+
+This extension does not upload, sell, share, or transmit your bookmark data to the developer or to an external server.
+
+See [PRIVACY.md](PRIVACY.md) for details.
+
+## Development
+
+Requirements:
+
+- Windows 11
+- Microsoft PowerToys with Command Palette
 - .NET SDK
-- PowerToys Command Palette
+- Windows SDK / Visual Studio build tools
+
+Build:
 
 ```powershell
-cd D:\Projects\CmdPalBrowserBookmarks
 dotnet restore .\CmdPalBrowserBookmarks.csproj
-dotnet publish .\CmdPalBrowserBookmarks.csproj -c Release -r win-x64 --self-contained true --output .\bin\x64\Release\net9.0-windows10.0.26100.0\win-x64
+dotnet build .\CmdPalBrowserBookmarks.csproj -c Release -r win-x64 --self-contained true
 ```
 
-## 개발 등록
-
-개발 중에는 MSIX AppExtension 방식으로 등록합니다.
+Create Store MSIX packages:
 
 ```powershell
-Add-AppxPackage -Register .\bin\x64\Release\net9.0-windows10.0.26100.0\win-x64\AppxManifest.xml -DisableDevelopmentMode
+dotnet build .\CmdPalBrowserBookmarks.csproj --configuration Release -p:GenerateAppxPackageOnBuild=true -p:Platform=x64 -p:AppxPackageDir="AppPackages\Store\x64\"
+dotnet build .\CmdPalBrowserBookmarks.csproj --configuration Release -p:GenerateAppxPackageOnBuild=true -p:Platform=ARM64 -p:AppxPackageDir="AppPackages\Store\ARM64\"
 ```
 
-등록 후 Command Palette에서 `reload`를 실행하거나 Command Palette를 다시 시작합니다.
+## Project Structure
 
-## 테스트
-
-1. Command Palette 열기
-2. `reload` 실행
-3. `네이버` 같은 북마크 이름 검색
-4. 결과가 1개만 표시되는지 확인
-5. Enter로 기본 브라우저에서 열리는지 확인
-6. 별칭을 설정했다면 `??`로 들어가서 같은 검색/열기 테스트
-
-## 북마크 단축키
-
-| 단축키 | 동작 |
+| Path | Purpose |
 | --- | --- |
-| `Enter` | 기본 브라우저에서 열기 |
-| `Shift` + `Enter` | 새 창에서 열기 |
-| `Ctrl` + `C` | URL 복사 |
-| `Ctrl` + `Shift` + `C` | 제목 복사 |
-| `Ctrl` + `Alt` + `C` | Markdown 링크 복사 |
-
-## 프로젝트 구조
-
-| 경로 | 역할 |
-| --- | --- |
-| `Bookmarks/` | 브라우저 북마크 탐색, 읽기, 캐시, 검색 점수 |
-| `Commands/` | 북마크 열기, fallback 검색, 새로고침 명령 |
-| `Pages/` | 북마크 목록 페이지와 설정 페이지 |
-| `Settings/` | Command Palette 확장 설정 |
-| `Package.appxmanifest` | Command Palette AppExtension 등록 정보 |
-
-## 참고
-
-현재 권장 등록 방식은 MSIX AppExtension입니다. Inno Setup 방식은 일반 설치 파일 제작에는 사용할 수 있지만, Command Palette 확장 검색/등록에는 MSIX AppExtension 방식이 더 안정적입니다.
-
+| `Bookmarks/` | Browser bookmark discovery, parsing, caching, and search |
+| `Commands/` | Bookmark actions and Command Palette commands |
+| `Pages/` | Command Palette pages |
+| `Settings/` | Extension settings |
+| `Localization/` | English and Korean strings |
+| `Assets/` | App and Store icons |
+| `Package.appxmanifest` | MSIX and Command Palette extension manifest |
