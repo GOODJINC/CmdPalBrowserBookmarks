@@ -9,25 +9,34 @@ namespace CmdPalBrowserBookmarks.Pages;
 internal sealed partial class BookmarkSettingsPage : ContentPage
 {
     private readonly SettingsManager _settings;
+    private readonly BookmarkIndex _bookmarkIndex;
+    private readonly Action _onRefreshed;
 
     public BookmarkSettingsPage(SettingsManager settings, BookmarkIndex bookmarkIndex, Action onRefreshed)
     {
         _settings = settings;
+        _bookmarkIndex = bookmarkIndex;
+        _onRefreshed = onRefreshed;
         Id = "CmdPalBrowserBookmarks.Settings";
         Icon = Icons.Settings;
         Title = settings.Strings.BrowserBookmarkSettings;
         Name = settings.Strings.Settings;
-        Commands =
+        Commands = CreateCommands();
+    }
+
+    private ICommandContextItem[] CreateCommands()
+    {
+        return
         [
-            new CommandContextItem(new RefreshBookmarksCommand(bookmarkIndex, settings, onRefreshed))
+            new CommandContextItem(new RefreshBookmarksCommand(_bookmarkIndex, _settings, _onRefreshed))
             {
-                Title = settings.Strings.RefreshNow,
+                Title = _settings.Strings.RefreshNow,
                 Icon = Icons.Refresh,
             },
-            new CommandContextItem(new ReloadCommandPaletteCommand(settings))
+            new CommandContextItem(new ReloadCommandPaletteCommand(_settings))
             {
-                Title = settings.Strings.ReloadCommandPalette,
-                Subtitle = settings.Strings.ReloadCommandPaletteSubtitle,
+                Title = _settings.Strings.ReloadCommandPalette,
+                Subtitle = _settings.Strings.ReloadCommandPaletteSubtitle,
                 Icon = Icons.Refresh,
             },
         ];
@@ -37,6 +46,10 @@ internal sealed partial class BookmarkSettingsPage : ContentPage
     {
         Title = _settings.Strings.BrowserBookmarkSettings;
         Name = _settings.Strings.Settings;
+        Commands =
+        [
+            .. CreateCommands(),
+        ];
     }
 
     public override IContent[] GetContent()

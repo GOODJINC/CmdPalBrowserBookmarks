@@ -19,7 +19,7 @@ internal sealed partial class BookmarkFallbackCommandItem : FallbackCommandItem
         _bookmarkIndex = bookmarkIndex;
         _settings = settings;
         Icon = Icons.Bookmarks;
-        SetDefaultState();
+        RefreshText();
     }
 
     public override void UpdateQuery(string query)
@@ -46,6 +46,11 @@ internal sealed partial class BookmarkFallbackCommandItem : FallbackCommandItem
         Icon = Icons.Bookmarks;
         Command = new OpenBookmarkCommand(bookmark, _settings);
         MoreCommands = BookmarkItemFactory.CreateContextCommands(bookmark, _settings);
+    }
+
+    public void RefreshText()
+    {
+        SetDefaultState();
     }
 
     private IReadOnlyList<BookmarkRecord> GetSearchableBookmarks()

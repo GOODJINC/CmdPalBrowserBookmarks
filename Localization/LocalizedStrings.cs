@@ -1,4 +1,3 @@
-using System.Globalization;
 using CmdPalBrowserBookmarks.Bookmarks;
 using CmdPalBrowserBookmarks.Settings;
 
@@ -18,8 +17,7 @@ internal sealed class LocalizedStrings
         return language switch
         {
             UiLanguage.Korean => new LocalizedStrings(true),
-            UiLanguage.English => new LocalizedStrings(false),
-            _ => new LocalizedStrings(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.Equals("ko", StringComparison.OrdinalIgnoreCase)),
+            _ => new LocalizedStrings(false),
         };
     }
 
@@ -53,7 +51,7 @@ internal sealed class LocalizedStrings
         : "Choose per-browser search profiles and additional Chromium folders";
 
     internal string AdvancedProfileSettingsNotice => _korean
-        ? "> 프로필 모드를 바꾼 뒤에는 **Save**를 누르고 이 화면을 다시 열어 주세요. 선택할 프로필 목록이 새 모드에 맞게 갱신됩니다."
+        ? "> 프로필 모드를 바꾼 뒤에는 **Save**를 누르고 이 화면을 다시 열어 주세요.  \n> 선택할 프로필 목록이 새 모드에 맞게 갱신됩니다."
         : "> After changing a profile mode, select **Save** and reopen this page. The profile choices will refresh for the new mode.";
 
     internal string RefreshBrowserBookmarks => _korean ? "브라우저 북마크 새로고침" : "Refresh Browser Bookmarks";
@@ -118,8 +116,6 @@ internal sealed class LocalizedStrings
     internal string UiLanguageDescription => _korean
         ? "확장 설정과 명령에 사용할 언어를 선택합니다. 변경 후 reload를 실행하면 전체 문구가 갱신됩니다."
         : "Choose the language used for extension settings and commands. Run reload after changing it to refresh all labels.";
-
-    internal string SystemDefault => _korean ? "시스템 기본값" : "System default";
 
     internal string Korean => _korean ? "한국어" : "Korean";
 

@@ -15,12 +15,15 @@ internal sealed class SettingsManager : JsonSettingsManager
     private readonly ToggleSetting _enableChrome;
     private readonly ToggleSetting _enableFirefox;
     private readonly ChoiceSetSetting _uiLanguage;
+    private readonly IReadOnlyList<ChromiumProfile> _edgeProfiles;
     private readonly ChoiceSetSetting _edgeProfileMode;
     private readonly ChoiceSetSetting _selectedEdgeProfile;
     private readonly IReadOnlyList<ProfileToggleSetting> _selectedEdgeProfileToggles;
+    private readonly IReadOnlyList<ChromiumProfile> _chromeProfiles;
     private readonly ChoiceSetSetting _chromeProfileMode;
     private readonly ChoiceSetSetting _selectedChromeProfile;
     private readonly IReadOnlyList<ProfileToggleSetting> _selectedChromeProfileToggles;
+    private readonly IReadOnlyList<FirefoxProfile> _firefoxProfiles;
     private readonly ChoiceSetSetting _firefoxProfileMode;
     private readonly ChoiceSetSetting _selectedFirefoxProfile;
     private readonly IReadOnlyList<ProfileToggleSetting> _selectedFirefoxProfileToggles;
@@ -68,7 +71,7 @@ internal sealed class SettingsManager : JsonSettingsManager
             Strings.ChooseEdgeProfileMode,
             ProfileModeChoices());
 
-        var edgeProfiles = BrowserProfileDiscovery.GetChromiumProfiles(
+        _edgeProfiles = BrowserProfileDiscovery.GetChromiumProfiles(
             BookmarkSourceKind.Edge,
             "Microsoft Edge",
             Path.Combine(LocalAppData, "Microsoft", "Edge", "User Data")).Profiles;
@@ -76,11 +79,11 @@ internal sealed class SettingsManager : JsonSettingsManager
             Key(nameof(SelectedEdgeProfileId)),
             Strings.EdgeProfile,
             Strings.SpecificProfileDescription("Microsoft Edge"),
-            ProfileChoices(edgeProfiles));
+            ProfileChoices(_edgeProfiles));
         _selectedEdgeProfileToggles = CreateProfileToggles(
             nameof(SelectedEdgeProfileIds),
             "Microsoft Edge",
-            edgeProfiles,
+            _edgeProfiles,
             _selectedEdgeProfile.Value);
 
         _chromeProfileMode = new ChoiceSetSetting(
@@ -89,7 +92,7 @@ internal sealed class SettingsManager : JsonSettingsManager
             Strings.ChooseChromeProfileMode,
             ProfileModeChoices());
 
-        var chromeProfiles = BrowserProfileDiscovery.GetChromiumProfiles(
+        _chromeProfiles = BrowserProfileDiscovery.GetChromiumProfiles(
             BookmarkSourceKind.Chrome,
             "Google Chrome",
             Path.Combine(LocalAppData, "Google", "Chrome", "User Data")).Profiles;
@@ -97,11 +100,11 @@ internal sealed class SettingsManager : JsonSettingsManager
             Key(nameof(SelectedChromeProfileId)),
             Strings.ChromeProfile,
             Strings.SpecificProfileDescription("Google Chrome"),
-            ProfileChoices(chromeProfiles));
+            ProfileChoices(_chromeProfiles));
         _selectedChromeProfileToggles = CreateProfileToggles(
             nameof(SelectedChromeProfileIds),
             "Google Chrome",
-            chromeProfiles,
+            _chromeProfiles,
             _selectedChromeProfile.Value);
 
         _firefoxProfileMode = new ChoiceSetSetting(
@@ -110,16 +113,16 @@ internal sealed class SettingsManager : JsonSettingsManager
             Strings.ChooseFirefoxProfileMode,
             ProfileModeChoices());
 
-        var firefoxProfiles = BrowserProfileDiscovery.GetFirefoxProfiles(roamingAppData, LocalAppData);
+        _firefoxProfiles = BrowserProfileDiscovery.GetFirefoxProfiles(roamingAppData, LocalAppData);
         _selectedFirefoxProfile = new ChoiceSetSetting(
             Key(nameof(SelectedFirefoxProfileId)),
             Strings.FirefoxProfile,
             Strings.SpecificProfileDescription("Mozilla Firefox"),
-            ProfileChoices(firefoxProfiles));
+            ProfileChoices(_firefoxProfiles));
         _selectedFirefoxProfileToggles = CreateProfileToggles(
             nameof(SelectedFirefoxProfileIds),
             "Mozilla Firefox",
-            firefoxProfiles,
+            _firefoxProfiles,
             _selectedFirefoxProfile.Value);
 
         _launchBrowserMode = new ChoiceSetSetting(
@@ -177,7 +180,9 @@ internal sealed class SettingsManager : JsonSettingsManager
         _basicSettings.Add(_enableKoreanInitialConsonantSearch);
 
         LoadSettings();
+        NormalizeUiLanguageValue();
         Strings = LocalizedStrings.For(UiLanguage);
+        ApplyLocalizedSettingsText();
 
         _basicSettings.SettingsChanged += OnVisibleSettingsChanged;
     }
@@ -278,9 +283,8 @@ internal sealed class SettingsManager : JsonSettingsManager
     {
         return
         [
-            new(Strings.SystemDefault, "system"),
-            new(Strings.Korean, "ko"),
             new(Strings.English, "en"),
+            new(Strings.Korean, "ko"),
         ];
     }
 
@@ -311,7 +315,7 @@ internal sealed class SettingsManager : JsonSettingsManager
     {
         if (!File.Exists(settingsPath))
         {
-            return UiLanguage.System;
+            return UiLanguage.English;
         }
 
         try
@@ -328,7 +332,7 @@ internal sealed class SettingsManager : JsonSettingsManager
         {
         }
 
-        return UiLanguage.System;
+        return UiLanguage.English;
     }
 
     private static UiLanguage ReadUiLanguage(string? value)
@@ -337,8 +341,22 @@ internal sealed class SettingsManager : JsonSettingsManager
         {
             "ko" or "ko-kr" or "korean" => UiLanguage.Korean,
             "en" or "en-us" or "english" => UiLanguage.English,
-            _ => UiLanguage.System,
+            _ => UiLanguage.English,
         };
+    }
+
+    private static string UiLanguageCode(UiLanguage language)
+    {
+        return language switch
+        {
+            UiLanguage.Korean => "ko",
+            _ => "en",
+        };
+    }
+
+    private void NormalizeUiLanguageValue()
+    {
+        _uiLanguage.Value = UiLanguageCode(UiLanguage);
     }
 
     private static BrowserProfileMode ReadProfileMode(string? value)
@@ -371,9 +389,62 @@ internal sealed class SettingsManager : JsonSettingsManager
 
     private void OnVisibleSettingsChanged(object? sender, ToolkitSettings settings)
     {
+        NormalizeUiLanguageValue();
         Strings = LocalizedStrings.For(UiLanguage);
+        ApplyLocalizedSettingsText();
         SaveSettings();
         SettingsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void ApplyLocalizedSettingsText()
+    {
+        _uiLanguage.Label = Strings.UiLanguageLabel;
+        _uiLanguage.Description = Strings.UiLanguageDescription;
+        _uiLanguage.Choices = UiLanguageChoices();
+
+        _enableEdge.Label = "Microsoft Edge";
+        _enableEdge.Description = Strings.ReadEdgeBookmarks;
+        _enableChrome.Label = "Google Chrome";
+        _enableChrome.Description = Strings.ReadChromeBookmarks;
+        _enableFirefox.Label = "Mozilla Firefox";
+        _enableFirefox.Description = Strings.ReadFirefoxBookmarks;
+
+        _edgeProfileMode.Label = Strings.EdgeProfileMode;
+        _edgeProfileMode.Description = Strings.ChooseEdgeProfileMode;
+        _edgeProfileMode.Choices = ProfileModeChoices();
+        _selectedEdgeProfile.Label = Strings.EdgeProfile;
+        _selectedEdgeProfile.Description = Strings.SpecificProfileDescription("Microsoft Edge");
+        _selectedEdgeProfile.Choices = ProfileChoices(_edgeProfiles);
+        ApplyLocalizedProfileToggleText(_selectedEdgeProfileToggles, "Microsoft Edge");
+
+        _chromeProfileMode.Label = Strings.ChromeProfileMode;
+        _chromeProfileMode.Description = Strings.ChooseChromeProfileMode;
+        _chromeProfileMode.Choices = ProfileModeChoices();
+        _selectedChromeProfile.Label = Strings.ChromeProfile;
+        _selectedChromeProfile.Description = Strings.SpecificProfileDescription("Google Chrome");
+        _selectedChromeProfile.Choices = ProfileChoices(_chromeProfiles);
+        ApplyLocalizedProfileToggleText(_selectedChromeProfileToggles, "Google Chrome");
+
+        _firefoxProfileMode.Label = Strings.FirefoxProfileMode;
+        _firefoxProfileMode.Description = Strings.ChooseFirefoxProfileMode;
+        _firefoxProfileMode.Choices = ProfileModeChoices();
+        _selectedFirefoxProfile.Label = Strings.FirefoxProfile;
+        _selectedFirefoxProfile.Description = Strings.SpecificProfileDescription("Mozilla Firefox");
+        _selectedFirefoxProfile.Choices = ProfileChoices(_firefoxProfiles);
+        ApplyLocalizedProfileToggleText(_selectedFirefoxProfileToggles, "Mozilla Firefox");
+
+        _launchBrowserMode.Label = Strings.LaunchBrowserMode;
+        _launchBrowserMode.Description = Strings.LaunchBrowserModeDescription;
+        _launchBrowserMode.Choices = LaunchBrowserChoices();
+
+        _enableHomePageSuggestions.Label = Strings.EnableHomePageSuggestions;
+        _enableHomePageSuggestions.Description = Strings.EnableHomePageSuggestionsDescription;
+        _enableKoreanInitialConsonantSearch.Label = Strings.KoreanInitialSearch;
+        _enableKoreanInitialConsonantSearch.Description = Strings.KoreanInitialSearchDescription;
+
+        _customChromiumUserDataFolders.Label = Strings.AdditionalChromiumFolders;
+        _customChromiumUserDataFolders.Description = Strings.AdditionalChromiumFoldersDescription;
+        _customChromiumUserDataFolders.Placeholder = @"C:\Portable\Browser\User Data;D:\Profiles\Chromium\User Data";
     }
 
     private List<ChoiceSetSetting.Choice> ProfileChoices<TProfile>(IReadOnlyList<TProfile> profiles)
@@ -413,6 +484,14 @@ internal sealed class SettingsManager : JsonSettingsManager
     private void AddProfileTogglesToSettings(IReadOnlyList<ProfileToggleSetting> toggles)
     {
         AddProfileTogglesToSettings(Settings, toggles);
+    }
+
+    private void ApplyLocalizedProfileToggleText(IReadOnlyList<ProfileToggleSetting> toggles, string browserName)
+    {
+        foreach (var toggle in toggles)
+        {
+            toggle.Setting.Description = Strings.MultipleProfileDescription(browserName);
+        }
     }
 
     private static void AddProfileTogglesToSettings(ToolkitSettings settings, IReadOnlyList<ProfileToggleSetting> toggles)

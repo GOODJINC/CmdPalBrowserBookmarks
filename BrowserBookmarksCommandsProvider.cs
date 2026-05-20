@@ -14,8 +14,8 @@ internal sealed partial class BrowserBookmarksCommandsProvider : CommandProvider
     private readonly object _gate = new();
     private readonly SettingsManager _settings = new();
     private readonly BookmarkIndex _bookmarkIndex;
-    private readonly BookmarkFallbackCommandItem _bookmarkFallbackCommand;
-    private readonly IFallbackCommandItem[] _fallbackCommands;
+    private BookmarkFallbackCommandItem _bookmarkFallbackCommand;
+    private IFallbackCommandItem[] _fallbackCommands;
     private readonly BookmarksPage _bookmarksPage;
     private readonly BookmarkSettingsPage _settingsPage;
     private readonly AdvancedProfileSettingsPage _advancedProfileSettingsPage;
@@ -94,6 +94,7 @@ internal sealed partial class BrowserBookmarksCommandsProvider : CommandProvider
                 _hasLoadedBookmarks = false;
             }
 
+            RefreshFallbackCommand();
             DisplayName = _settings.Strings.BrowserBookmarks;
             UpdateTopLevelCommands([], false);
             RaiseItemsChanged(_topLevelCommands.Length);
@@ -120,6 +121,12 @@ internal sealed partial class BrowserBookmarksCommandsProvider : CommandProvider
     public override IFallbackCommandItem[] FallbackCommands()
     {
         return _settings.EnableHomePageSuggestions ? _fallbackCommands : NoFallbackCommands;
+    }
+
+    private void RefreshFallbackCommand()
+    {
+        _bookmarkFallbackCommand = new BookmarkFallbackCommandItem(_bookmarkIndex, _settings);
+        _fallbackCommands = [_bookmarkFallbackCommand];
     }
 
     private void QueueBookmarkRefresh(bool notifyItemsChanged)
@@ -183,6 +190,7 @@ internal sealed partial class BrowserBookmarksCommandsProvider : CommandProvider
         _settingsPage.RefreshText();
         _advancedProfileSettingsPage.RefreshText();
         _refreshBookmarksCommand.RefreshText();
+        _bookmarkFallbackCommand.RefreshText();
 
         _bookmarksCommandItem.Title = _settings.Strings.BrowserBookmarks;
         _bookmarksCommandItem.Subtitle = bookmarksSubtitle;
