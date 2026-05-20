@@ -10,7 +10,7 @@
   <Identity
     Name="GOODJINC.BrowserBookmarksforCommandPalette"
     Publisher="CN=CE2BFA27-130B-4274-9E19-529A1C29C5C5"
-    Version="0.2.0.0" />
+    Version="0.2.1.0" />
 
   <Properties>
     <DisplayName>Browser Bookmarks for Command Palette</DisplayName>
