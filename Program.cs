@@ -13,6 +13,9 @@ public static class Program
     internal const string OpenUrlAfterDelayArgument = "--open-url-after-delay";
     internal const string OpenUrlInNewWindowAfterDelayArgument = "--open-url-in-new-window-after-delay";
 
+    [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode, SetLastError = true)]
+    private static extern int MessageBox(IntPtr hWnd, string text, string caption, uint type);
+
     [MTAThread]
     public static void Main(string[] args)
     {
@@ -23,6 +26,11 @@ public static class Program
 
         if (args.Length == 0 || !string.Equals(args[0], "-RegisterProcessAsComServer", StringComparison.OrdinalIgnoreCase))
         {
+            MessageBox(
+                IntPtr.Zero,
+                "This is a Microsoft PowerToys Command Palette extension and cannot be run directly.\n\nPlease open PowerToys Command Palette to use this extension.",
+                "Browser Bookmarks for Command Palette",
+                0x00000040); // MB_OK | MB_ICONINFORMATION
             return;
         }
 

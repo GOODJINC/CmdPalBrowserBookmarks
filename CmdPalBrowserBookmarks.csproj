@@ -17,10 +17,10 @@
     <EnableMsixTooling>true</EnableMsixTooling>
     <AppxPackageIdentityName>GOODJINC.BrowserBookmarksforCommandPalette</AppxPackageIdentityName>
     <AppxPackagePublisher>CN=CE2BFA27-130B-4274-9E19-529A1C29C5C5</AppxPackagePublisher>
-    <Version>0.2.2.0</Version>
-    <AssemblyVersion>0.2.2.0</AssemblyVersion>
-    <FileVersion>0.2.2.0</FileVersion>
-    <AppxPackageVersion>0.2.2.0</AppxPackageVersion>
+    <Version>0.2.3.0</Version>
+    <AssemblyVersion>0.2.3.0</AssemblyVersion>
+    <FileVersion>0.2.3.0</FileVersion>
+    <AppxPackageVersion>0.2.3.0</AppxPackageVersion>
     <PublishTrimmed>false</PublishTrimmed>
     <PublishAot>false</PublishAot>
   </PropertyGroup>
