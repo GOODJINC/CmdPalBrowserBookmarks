@@ -10,13 +10,11 @@ Browser Bookmarks는 Microsoft Edge, Google Chrome, Mozilla Firefox에 저장된
 
 ## 설치
 
-Microsoft Store 출시를 준비 중입니다.
+**Microsoft Store**에서 바로 설치할 수 있습니다:
 
-Store 페이지가 공개되면 이곳에 Store 링크를 추가할 예정입니다.
+[<img src="https://get.microsoft.com/images/en-us%20dark.svg" width="160"/>](https://apps.microsoft.com/detail/9P8FTKQFZR0M)
 
-현재는 최신 GitHub Release를 사용할 수 있습니다.
-
-https://github.com/GOODJINC/CmdPalBrowserBookmarks/releases
+또는 [GitHub Releases](https://github.com/GOODJINC/CmdPalBrowserBookmarks/releases)에서 최신 버전을 다운로드하세요.
 
 ## 주요 기능
 
