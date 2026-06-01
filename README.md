@@ -10,11 +10,23 @@ Browser Bookmarks reads bookmarks from Microsoft Edge, Google Chrome, and Mozill
 
 ## Install
 
-You can install the extension from the **Microsoft Store**:
+Install from the official Windows Package Manager source:
+
+```powershell
+winget install --id GOODJINC.CmdPalBrowserBookmarks
+```
+
+To update an existing installation:
+
+```powershell
+winget upgrade --id GOODJINC.CmdPalBrowserBookmarks
+```
+
+You can also install the extension from the **Microsoft Store**:
 
 [<img src="https://get.microsoft.com/images/en-us%20dark.svg" width="160"/>](https://apps.microsoft.com/detail/9P8FTKQFZR0M)
 
-Or download the latest package from [GitHub Releases](https://github.com/GOODJINC/CmdPalBrowserBookmarks/releases).
+Or download packages manually from [GitHub Releases](https://github.com/GOODJINC/CmdPalBrowserBookmarks/releases).
 
 ## Features
 

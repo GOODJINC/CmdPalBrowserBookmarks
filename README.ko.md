@@ -10,11 +10,23 @@ Browser Bookmarks는 Microsoft Edge, Google Chrome, Mozilla Firefox에 저장된
 
 ## 설치
 
-**Microsoft Store**에서 바로 설치할 수 있습니다:
+공식 Windows Package Manager 소스에서 설치할 수 있습니다:
+
+```powershell
+winget install --id GOODJINC.CmdPalBrowserBookmarks
+```
+
+이미 설치한 경우 업데이트는 다음 명령으로 확인할 수 있습니다:
+
+```powershell
+winget upgrade --id GOODJINC.CmdPalBrowserBookmarks
+```
+
+또는 **Microsoft Store**에서 바로 설치할 수 있습니다:
 
 [<img src="https://get.microsoft.com/images/en-us%20dark.svg" width="160"/>](https://apps.microsoft.com/detail/9P8FTKQFZR0M)
 
-또는 [GitHub Releases](https://github.com/GOODJINC/CmdPalBrowserBookmarks/releases)에서 최신 버전을 다운로드하세요.
+수동 설치 패키지는 [GitHub Releases](https://github.com/GOODJINC/CmdPalBrowserBookmarks/releases)에서 다운로드할 수 있습니다.
 
 ## 주요 기능
 
